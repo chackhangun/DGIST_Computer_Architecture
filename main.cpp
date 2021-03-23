@@ -7,7 +7,10 @@
 /////////////////////////////////////////////////////////format 클래스 파일
 class Myformats{
     public:
-        Myformats(){};
+        Myformats(){
+            opcode = 0;
+            instruction_name = "none";
+        }
         virtual ~Myformats(){}; 
 
         int opcode;
@@ -21,7 +24,9 @@ class Myformats{
 
 class R_format: public Myformats{
     public:
-        R_format(){};
+        R_format() {
+            rs = rt = rd = shamt = funct = 0;
+        }
         R_format(std::string name, int op, int funct_num){
             instruction_name = name;
             set_opcode(op);
@@ -35,7 +40,9 @@ class R_format: public Myformats{
 
 class I_format: public Myformats{
     public:
-        I_format(){};
+        I_format() {
+            rs = rt = immediate = 0;
+        }
         I_format(std::string name, int op_num){
             instruction_name = name;
             set_opcode(op_num);
@@ -48,7 +55,9 @@ class I_format: public Myformats{
 
 class J_format: public Myformats{
     public:
-        J_format(){};
+        J_format() {
+            jump_target = 0;
+        }
         J_format(std::string name, int op_num){
             instruction_name = name;
             set_opcode(op_num);
@@ -61,10 +70,12 @@ class J_format: public Myformats{
 
 /////////////////////////////////////////////////////함수파일
 
-void main_start(std::vector<Myformats> instructions, std::vector<std::string> container){
+void print_opcode(std::vector<Myformats> instructions, std::vector<std::string> container){
     for(auto iter = instructions.begin(); iter != instructions.end(); iter++){
         if(iter->instruction_name ==  container[0]){
             int code_num = iter->opcode;
+
+
             std::cout << std::bitset<5>(code_num) << std::endl;
             break;
             }
@@ -104,7 +115,7 @@ void mytranslation(std::string file_name, std::vector<Myformats> instructions){
                 }
 
                 if(main_line == 1){
-                    main_start(instructions, container);
+                    print_opcode(instructions, container);
                 }
             }
         }
