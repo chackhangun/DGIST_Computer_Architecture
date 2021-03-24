@@ -4,16 +4,15 @@
 #include <sstream>
 #include <vector>
 #include <bitset>
+
+#include <stdlib.h> ///for strtol
 /* //////////////////////////////////////what todo
 
-
-array
-
-array2 처리
-
-
+메모리 구현
+data segment, text segment 시작주소 잡기                                   --------------complete
+한줄한줄 읽을때마다 txt segment에 저장하기. 4바이트                          --------------complete
 main이 시작되었을때
-print_output 함수 정리하기 /done;
+print_output 함수 정리하기                                                  -------------complete
 
 lb와 같이 offset 있는 명령어들 extract_number 함수 처리
 la를 위한 함
@@ -129,18 +128,9 @@ int num_extract(std::string str){
         delete[] extract_number;
         //////////////16진수일때
         if(extract_num[0] == '0' && extract_num[1] == 'x'){
-            unsigned char hex_num = 0;
-            for(int i = 0; extract_num[i] != 0; i++){
-                if(extract_num[i] >= 'a' && extract_num[i] <= 'f'){
-                    hex_num = hex_num * 16 + extract_num[i] - 'a' + 10;
-                }
-                else if(extract_num[i] >= '0' && extract_num[i] <= '9'){
-                    hex_num = hex_num * 16 + extract_num[i] - '0';
-                }
-            }
-            return hex_num;
+            const char* transform = extract_num.c_str();
+            return strtol(transform, NULL, 16);
         }
-        //////////////////////////////////
         int num = stoi(extract_num);
         return num;
     }
@@ -226,72 +216,14 @@ int print_output(std::vector<R_format> R, std::vector<I_format> I,std::vector<J_
     }       
 }
 
-void mytranslation(std::string file_name, std::vector<R_format> R, std::vector<I_format> I, std::vector<J_format> J){
-    std::ifstream sample_code;
-    sample_code.open(file_name);
-
-    int main_line = 0;
-
-    if(sample_code.is_open()){
-        while(!sample_code.eof()){
-            std::string oneline;
-            getline(sample_code, oneline);
-
-            if(oneline.length() == 0){
-                break;
-            }
-
-            else{
-                std::istringstream iss(oneline);
-                std::vector<std::string> container;
-                container.clear();
-
-                std::string sub;
-            
-                while(iss >> sub)
-                {
-                    container.push_back(sub);
-                }
-
-                if(sub == "main:"){
-                    main_line = 1;
-                    continue;
-                }
-
-                if(main_line == 1){
-                    ////////////////                                                                  for test
-                    for(int i = 0; i < container.size(); i++){
-                        std::cout << container[i] << " ";
-                    }
-                    std::cout << std::endl;//////////////////
-                    int program_execution = print_output(R,I,J, container);
-                }
-            }
-        }
-    sample_code.close();
-    }
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-std::vector<Myformats> make_instruction_class(){
-    R_format addu("addu",0, 0x21), _and("and", 0, 0x24), jr("jr",0,8), nor("nor",0, 0x27), _or("or", 0, 0x25), sltu("sltu",0, 0x2b), sll("sll",0,0), srl("srl",0,2), subu("subu",0,0x23);
-    I_format addiu("addiu", 9), andi("andi", 0xc), beq("beq", 4), bne("bne", 5), lui("lui", 0xf), lw("lw", 0x23), ori("ori", 0xd), sltiu("sltiu", 0xb), sw("sw", 0x2b), lb("lb", 0x20), sb("sb", 0x28);
-    J_format j("j", 2), jal("jal", 3);
-
-    std::vector<Myformats> container{addu, _and, jr, nor, _or, sltu, sll, srl, subu, addiu, andi, beq, bne, lui, lw, ori, sltiu, sw, lb, sb, j, jal};
-    return container;
-}
-*/
-
-////////////////////큰 format class 만들고 세부적인 클래스 만들기
-////////////////////std::vector<myformat> container 
 int main(){
-
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// instruction들의 초기설정 
     R_format addu("addu",0, 0x21), _and("and", 0, 0x24), jr("jr",0,8), nor("nor",0, 0x27), _or("or", 0, 0x25), sltu("sltu",0, 0x2b), sll("sll",0,0), srl("srl",0,2), subu("subu",0,0x23);
     I_format addiu("addiu", 9), andi("andi", 0xc), beq("beq", 4), bne("bne", 5), lui("lui", 0xf), lw("lw", 0x23), ori("ori", 0xd), sltiu("sltiu", 0xb), sw("sw", 0x2b), lb("lb", 0x20), sb("sb", 0x28);
     J_format j("j", 2), jal("jal", 3);
@@ -300,5 +232,117 @@ int main(){
     std::vector<I_format> I{addiu, andi, beq, bne, lui, lw, ori, sltiu, sw, lb, sb};
     std::vector<J_format> J{j, jal};
 
-    mytranslation("sample.s", R,I,J);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 메모리 초기설정
+    int mem_starting_add_txt = 0x00400000;
+    int mem_starting_add_data = 0x10000000;
+    int mem_end_stack = 0x7ffffffc;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// parsing
+    std::ifstream sample_code;
+    sample_code.open("sample.s");
+
+    std::vector<std::vector<std::string>> parsing_table;
+
+    int number_of_instruction_line = 0;
+    int number_of_data_line = 0;
+
+    int mem_now_add_txt = 0x00400000;
+    int mem_now_add_data = 0x10000000;
+
+    bool data = false;
+    bool text = false;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// data memory 설정
+    std::vector<std::vector<int>> data_array;
+    std::vector<std::vector<std::vector<int>>> data_memory; 
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    if(sample_code.is_open()){
+        while(!sample_code.eof()){
+            std::string oneline;
+            getline(sample_code, oneline);
+            std::istringstream iss(oneline);
+
+            std::vector<std::string> container;
+            container.clear();
+            std::string sub;
+            while(iss >> sub){
+                container.push_back(sub);
+            }
+
+            if(container.size() == 0){
+                break;
+            }
+
+            std::string& first_word = container[0];
+            if(first_word == ".data"){
+                data = true;
+                continue;
+            }
+            if(first_word == ".text"){
+                text = true;
+                data_memory.push_back(data_array); // "".text"가 나오는 순간 data영역이 끝나기 때문에 바로 아래의 if문에서 만들어진 마지막 data_array를 data_memory에 저장해주어야함
+                data_array.clear();
+                continue;
+            }
+
+            if(data == true && text == false){ //data segment
+                number_of_data_line ++;
+                mem_now_add_data = mem_starting_add_data - 4*(number_of_data_line-1);
+
+                if(first_word.back() == ':'){
+                    if(data_array.size() != 0){
+                        data_memory.push_back(data_array);
+                        data_array.clear();
+                    }
+                    std::vector<int> variable  = {mem_now_add_data, num_extract(container[2])}; /////////////////////
+                    data_array.push_back(variable);
+                    /*
+                    std::cout << "container[1] Memory address = " << variable[0];
+                    std::cout << "container[2], value = " << num_extract(container[2]) << "," << variable[1] << std::endl;
+                    std::cout << variable.back() << std::endl; // for test
+                    */
+                }
+
+                if(first_word == ".word"){
+                    std::vector<int> variable  = {mem_now_add_data, num_extract(container[1])};
+                    data_array.push_back(variable);
+                    /*
+                    std::cout << "container[0] Memory address = " << variable[0];
+                    std::cout << "container[1], value = " << num_extract(container[1]) << "," << variable[1] << std::endl;
+                    std::cout << variable.back() << std::endl; /// for test;
+                    */
+                }
+
+            }
+
+
+////좀더 고민
+            if(data == true && text == true){ //instruction
+                number_of_instruction_line ++;
+                mem_now_add_txt = mem_starting_add_txt - 4*(number_of_instruction_line - 1);
+                ////////////////                                                                  for test
+                for(int i = 0; i < container.size(); i++){
+                    std::cout << container[i] << " ";
+                }
+                std::cout << std::endl;//////////////////
+                int program_execution = print_output(R,I,J, container);
+            }
+            parsing_table.push_back(container);
+        }
+        sample_code.close();
+    }
+
+    /*
+    std::cout << "number of data line = " << number_of_data_line << std::endl;
+    std::cout << "number of instruction line = " << number_of_instruction_line << std::endl;
+    std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
+    for(auto i = data_memory.begin(); i != data_memory.end(); i++){
+        std::cout << (*i).front().back() << std::endl;
+    }
+    */
+    
+    return 0 ;
 }
