@@ -386,12 +386,49 @@ int main(){
             }
 
             else{ ////////////////////////////////////////////////////////2진수 string으로 만들고 다시 int로 만들어준 후 array에 추가.
+                std::string bit_to_int_instruction;
+
                 number_of_instruction_line++;
                 mem_now_add_txt = mem_starting_add_txt - 4 * (number_of_instruction_line - 1);
-                std::string bit_to_int_instruction = print_output(R, I, J, container);
-                std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
-                txt_array.push_back(value);
-                std::cout << "memory address = " << value.first << "bit instruction = " << value.second << std::endl;
+
+
+                if(first_word == "la"){
+                    std::string find_op = container[2];
+                    int number = 0;
+
+                    for(int n = 0; n < parsing_table.size(); n++ ){
+                        if(parsing_table[n][0].back() == ':'){
+                            number++;
+                        }
+                        if(parsing_table[n][0] == find_op + ':'){
+                            break;
+                        }
+                    }
+                    int address_num_la = data_memory[number-1][0][0];
+
+                    std::vector<std::string> new_container = {"lui", container[1], std::to_string(address_num_la)}; ////////////////address_num_la를 16진수로 바꾸고 4자리씩 비교해야함.
+                    bit_to_int_instruction = print_output(R,I,J, new_container);
+                    std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                    txt_array.push_back(value);
+                    std::cout << "memory address = " << value.first << "bit instruction = " << value.second << std::endl;
+                    /*
+                    const char* checking_ori = std::to_string(address_num_la).c_str();
+                    strtol(checking_ori, NULL, 16);
+                    */
+
+                    if(address_num_la % 16 != 0){ ///ori 계산
+                        number_of_instruction_line++;
+                        mem_now_add_txt = mem_starting_add_txt - 4 * (number_of_instruction_line - 1);
+
+
+                    }
+                }
+                else{
+                    std::string bit_to_int_instruction = print_output(R, I, J, container);
+                    std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                    txt_array.push_back(value);
+                    std::cout << "memory address = " << value.first << "bit instruction = " << value.second << std::endl;
+                }
             }
             
             
