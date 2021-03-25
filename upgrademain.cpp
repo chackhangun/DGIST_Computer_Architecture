@@ -8,7 +8,7 @@
 #include <stdlib.h> ///for strtol
 /* //////////////////////////////////////what todo
 
-메모리 구현
+메모리 구현                                                                  ---------------------complete
 data segment, text segment 시작주소 잡기                                   --------------complete
 한줄한줄 읽을때마다 data segment에 저장하기. 4바이트                          --------------complete
 main이 시작되었을때 txt segment에 저장하기
@@ -20,7 +20,7 @@ sum_exit:
 exit: 가 시작되었을때                                                  --------------complete
 
 lb와 같이 offset 있는 명령어들 extract_number 함수 처리
-la를 위한 함수
+la                                                                       ----------------complete
 연산자들 조건
 
 숫자들 한줄로 이어서 string으로 만들고 난 후 int로 바꾸고 16진수로 바꾸기   ----------------complete
@@ -107,6 +107,29 @@ class J_format: public Myformats{
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+std::vector<std::string> classify_bracket(std::string str){
+    int idx_first = 0;
+    int idx_second = 0;
+    for(auto iter = str.begin(); iter != str.end(); iter++){
+        if((*iter) == '('){
+            idx_first = iter - str.begin();
+        }
+        if((*iter) == ')'){
+            idx_second = iter - str.begin();
+        }
+    }
+    std::string offset;
+    for(auto iter = str.begin(); iter != str.begin() + idx_first; iter++){
+        offset.push_back(*iter);
+    }
+    std::string rs;
+    for(auto iter = str.begin() + idx_first + 1 ; iter != str.begin() + idx_second; iter++){
+        rs.push_back(*iter);
+    }
+    std::vector<std::string> classify = {offset, rs};
+    return classify;
+}
 
 std::vector<std::vector<std::string>>& read_once (std::ifstream& sample_code,std::vector<std::vector<std::string>>& parsing_table){
     if(sample_code.is_open()){
@@ -224,9 +247,17 @@ std::string calculate_I_format(std::vector<I_format>::iterator iter, std::vector
         }
 
         else{ ////////////////lw,lb,sw, sb인 경우
+        
+            iter->rt = num_extract(container[1]);
+            std::vector<std::string> classified_string = classify_bracket(container[2]); 
+            iter->rs = num_extract(classified_string.back());
+            iter->immediate_or_address = std::stoi(classified_string.front());
+            std::cout << "immediate or address = " << iter->immediate_or_address << std::endl; ///////////////////////////for test
+            /*
             iter->rt = num_extract(container[1]);
             iter->immediate_or_address = num_extract(container[2]);
             std::cout << "immediate or address = " << iter->immediate_or_address << std::endl; ///////////////////////////for test
+            */
         }
     }
     std::cout << std::bitset<6>(code_num) << " " << std::bitset<5>((iter)->rs) << " " << std::bitset<5>((iter)->rt) << " " << std::bitset<16>((iter)->immediate_or_address) << std::endl;
@@ -255,6 +286,15 @@ std::string calculate_J_format(std::vector<J_format>::iterator iter, std::vector
 }
 
 std::string print_output(std::vector<R_format> R, std::vector<I_format> I,std::vector<J_format> J, std::vector<std::string> container){
+
+            ////////////////                                                                  for test
+    for (int i = 0; i < container.size(); i++)
+        {
+            std::cout << container[i] << " ";
+    }
+    std::cout << std::endl; //////////////////
+
+
     for(auto iter = R.begin(); iter != R.end(); iter++){
         if(iter->instruction_name ==  container[0]){
             return calculate_R_format(iter, container);
@@ -271,6 +311,14 @@ std::string print_output(std::vector<R_format> R, std::vector<I_format> I,std::v
             return calculate_J_format(iter, container);
         }
     }       
+}
+
+std::string int_to_hex(int num){   ///16진수 string으로 변환
+    std::stringstream ss;
+    std::string str;
+    ss << std::hex << num;
+    str = ss.str();
+    return str;
 }
 
 
@@ -340,7 +388,7 @@ int main(){
 
         if (data == true && text == false){ //data segment
             number_of_data_line++;
-            mem_now_add_data = mem_starting_add_data - 4 * (number_of_data_line - 1);
+            mem_now_add_data = mem_starting_add_data + 4 * (number_of_data_line - 1);
 
             if (first_word.back() == ':'){
                 if (data_array.size() != 0)
@@ -383,24 +431,78 @@ int main(){
                 }
 
                 continue;
-            }
+            }                                     /////////////sum: sltiu s1 s2 1
 
-            else{ ////////////////////////////////////////////////////////2진수 string으로 만들고 다시 int로 만들어준 후 array에 추가.
+            else{
+                std::string bit_to_int_instruction;
+
                 number_of_instruction_line++;
-                mem_now_add_txt = mem_starting_add_txt - 4 * (number_of_instruction_line - 1);
-                std::string bit_to_int_instruction = print_output(R, I, J, container);
-                std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
-                txt_array.push_back(value);
-                std::cout << "memory address = " << value.first << "bit instruction = " << value.second << std::endl;
+                mem_now_add_txt = mem_starting_add_txt + 4 * (number_of_instruction_line - 1);
+
+
+                if(first_word == "la"){
+                    std::string find_op = container[2];
+                    int number = 0;
+
+                    for(int n = 0; n < parsing_table.size(); n++ ){
+                        if(parsing_table[n][0].back() == ':'){
+                            number++;
+                        }
+                        if(parsing_table[n][0] == find_op + ':'){
+                            break;
+                        }
+                    }
+
+                    /// lui에 상위 16비트/// ori에 하위 16비트
+
+                    int address_num_la = data_memory[number-1][0][0];
+                    std::string hex_num = int_to_hex(address_num_la); ////16진수로 바꿈. 상위 4글자 하위 4글자.
+
+                    std::string eight_hex_num = "00000000";
+                    int idx = 0;
+                    for(auto iter = hex_num.rbegin(); iter != hex_num.rend(); iter++){
+                        eight_hex_num[7-idx] = (*iter);
+                        idx++;
+                    }
+
+
+                    std::string upfour;
+                    std::string downfour;
+                    for(int i = 0; i < 4; i++){
+                        upfour.push_back(eight_hex_num[i]);
+                    }
+
+                    for(int i = 4; i < 8; i++){
+                        downfour.push_back(eight_hex_num[i]);
+                    }
+
+                    std::vector<std::string> new_container = {"lui", container[1], upfour}; ////////////////address_num_la를 16진수로 바꾸고 4자리씩 비교해야함.
+                    bit_to_int_instruction = print_output(R,I,J, new_container);
+                    std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                    txt_array.push_back(value);
+                    std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
+
+                    if(downfour != "0000"){   ///////////ori 해야함.
+                        number_of_instruction_line++;
+                        mem_now_add_txt = mem_starting_add_txt + 4 * (number_of_instruction_line - 1);
+                        std::vector<std::string> second_new_container = {"ori", container[1], container[1], downfour};
+                        bit_to_int_instruction = print_output(R,I,J, second_new_container);
+                        std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                        txt_array.push_back(value);
+                        std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
+                    }
+
+                }
+                else{
+                    std::string bit_to_int_instruction = print_output(R, I, J, container);
+                    std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                    txt_array.push_back(value);
+                    std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
+                }
             }
             
             
-            ////////////////                                                                  for test
-            for (int i = 0; i < container.size(); i++)
-            {
-                std::cout << container[i] << " ";
-            }
-            std::cout << std::endl; //////////////////
+
             
         }
     }
