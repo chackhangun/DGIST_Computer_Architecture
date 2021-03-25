@@ -4,20 +4,28 @@
 #include <sstream>
 #include <vector>
 #include <bitset>
-
+#include <utility>
 #include <stdlib.h> ///for strtol
 /* //////////////////////////////////////what todo
 
 메모리 구현
 data segment, text segment 시작주소 잡기                                   --------------complete
-한줄한줄 읽을때마다 txt segment에 저장하기. 4바이트                          --------------complete
-main이 시작되었을때
+한줄한줄 읽을때마다 data segment에 저장하기. 4바이트                          --------------complete
+main이 시작되었을때 txt segment에 저장하기
 print_output 함수 정리하기                                                  -------------complete
 
+
+sum:
+sum_exit:
+exit: 가 시작되었을때                                                  --------------complete
+
 lb와 같이 offset 있는 명령어들 extract_number 함수 처리
-la를 위한 함
+la를 위한 함수
+연산자들 조건
 
+숫자들 한줄로 이어서 string으로 만들고 난 후 int로 바꾸고 16진수로 바꾸기   ----------------complete
 
+한번 다 읽은 다음에 파싱해야함.                                           ----------------complete
 
 
 
@@ -100,6 +108,31 @@ class J_format: public Myformats{
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+std::vector<std::vector<std::string>>& read_once (std::ifstream& sample_code,std::vector<std::vector<std::string>>& parsing_table){
+    if(sample_code.is_open()){
+        while(!sample_code.eof()){
+            std::string oneline;
+            getline(sample_code, oneline);
+            std::istringstream iss(oneline);
+
+            std::vector<std::string> container;
+            container.clear();
+            std::string sub;
+            while(iss >> sub){
+                container.push_back(sub);
+            }
+            parsing_table.push_back(container);
+        }
+        sample_code.close();
+    }
+
+    if(parsing_table.back().size() == 0){ /////////////s파일 맨마지막 줄이 비었을 때
+        parsing_table.pop_back();
+    }
+
+    return parsing_table;
+}
+
 int num_extract(std::string str){
     int first_num_idx = 0;
     int last_num_idx = str.length() - 1;
@@ -137,8 +170,7 @@ int num_extract(std::string str){
 
 }
 
-
-void print_R_format(std::vector<R_format>::iterator iter, std::vector<std::string> container){
+std::string calculate_R_format(std::vector<R_format>::iterator iter, std::vector<std::string> container){
     int code_num = iter->opcode;
     if(iter->instruction_name == "jr"){ // jr인 경우
         iter->rs = num_extract(container[1]);
@@ -156,10 +188,22 @@ void print_R_format(std::vector<R_format>::iterator iter, std::vector<std::strin
             iter->rt = num_extract(container[3]);
         }
     }
-    std::cout << std::bitset<6>(code_num) << " " << (iter)->rs << " " << (iter)->rt << " " << (iter)->rd << " " << (iter)->shamt << " " << (iter)->funct <<std::endl;
+    std::cout << std::bitset<6>(code_num) << " " << std::bitset<5>((iter)->rs) << " " << std::bitset<5>((iter)->rt) << " " << std::bitset<5>((iter)->rd) << " " << std::bitset<5>((iter)->shamt) << " " << std::bitset<6>((iter)->funct) << std::endl;
+
+    std::bitset<6>bit_op(code_num);
+    std::bitset<5>bit_rs((iter)->rs); 
+    std::bitset<5>bit_rt((iter)->rt);
+    std::bitset<5>bit_rd((iter)->rd); 
+    std::bitset<5>bit_shamt((iter)->shamt); 
+    std::bitset<6>bit_funct((iter)->funct);
+
+    std::string bit_instruction = bit_op.to_string() + bit_rs.to_string() + bit_rt.to_string() + bit_rd.to_string() + bit_shamt.to_string() + bit_funct.to_string();
+    std::cout << bit_instruction << std::endl;
+    return bit_instruction;
+
 }
 
-void print_I_format(std::vector<I_format>::iterator iter, std::vector<std::string> container){
+std::string calculate_I_format(std::vector<I_format>::iterator iter, std::vector<std::string> container){
     int code_num = iter->opcode;
     if(iter->instruction_name == "addiu" | iter->instruction_name == "andi" | iter->instruction_name == "ori" | iter->instruction_name == "sltiu"){
         iter->rt  = num_extract(container[1]);
@@ -185,36 +229,50 @@ void print_I_format(std::vector<I_format>::iterator iter, std::vector<std::strin
             std::cout << "immediate or address = " << iter->immediate_or_address << std::endl; ///////////////////////////for test
         }
     }
-    std::cout << std::bitset<6>(code_num) << " " << (iter)->rs << " " << (iter)->rt << " " << (iter)->immediate_or_address << std::endl;
+    std::cout << std::bitset<6>(code_num) << " " << std::bitset<5>((iter)->rs) << " " << std::bitset<5>((iter)->rt) << " " << std::bitset<16>((iter)->immediate_or_address) << std::endl;
+    std::bitset<6>bit_code_num(code_num); 
+    std::bitset<5>bit_rs((iter)->rs);
+    std::bitset<5>bit_rt((iter)->rt); 
+    std::bitset<16>bit_immediate((iter)->immediate_or_address); 
+    
+    std::string bit_instruction = bit_code_num.to_string() + bit_rs.to_string() + bit_rt.to_string() + bit_immediate.to_string();
+    std::cout << bit_instruction << std::endl;
+    return bit_instruction; //std::stoll(bit_instruction);
+
 }
 
-void print_J_format(std::vector<J_format>::iterator iter, std::vector<std::string> container){
+std::string calculate_J_format(std::vector<J_format>::iterator iter, std::vector<std::string> container){
     int code_num = iter->opcode;
     iter->jump_target = num_extract(container[1]);
-    std::cout << std::bitset<6>(code_num) << " " << (iter)->jump_target << std::endl;
+    std::cout << code_num << " " << (iter)->jump_target << std::endl; 
+    std::bitset<6>bit_code_num(code_num);
+    std::bitset<26>bit_jump_target((iter)->jump_target); 
+
+    std::string bit_instruction = bit_code_num.to_string() + bit_jump_target.to_string();
+    std::cout << bit_instruction << std::endl;
+    return bit_instruction; //std::stoll(bit_instruction);
+     
 }
 
-int print_output(std::vector<R_format> R, std::vector<I_format> I,std::vector<J_format> J, std::vector<std::string> container){
+std::string print_output(std::vector<R_format> R, std::vector<I_format> I,std::vector<J_format> J, std::vector<std::string> container){
     for(auto iter = R.begin(); iter != R.end(); iter++){
         if(iter->instruction_name ==  container[0]){
-            print_R_format(iter, container);
-            return 1;
+            return calculate_R_format(iter, container);
         }
     }
     for(auto iter = I.begin(); iter != I.end(); iter++){
         if(iter->instruction_name ==  container[0]){
-            print_I_format(iter, container);
-            return 2;
+            return calculate_I_format(iter, container);
         }
     }
 
     for(auto iter = J.begin(); iter != J.end(); iter++){
         if(iter->instruction_name ==  container[0]){
-            print_J_format(iter, container);
-            return 3;
+            return calculate_J_format(iter, container);
         }
     }       
 }
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,6 +300,7 @@ int main(){
     sample_code.open("sample.s");
 
     std::vector<std::vector<std::string>> parsing_table;
+    parsing_table = read_once(sample_code, parsing_table);
 
     int number_of_instruction_line = 0;
     int number_of_data_line = 0;
@@ -255,89 +314,112 @@ int main(){
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// data memory 설정
     std::vector<std::vector<int>> data_array;
     std::vector<std::vector<std::vector<int>>> data_memory; 
-
-
-
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// text memeory 설정
+    std::vector<std::pair<int, std::string>> txt_array;
+    std::vector<std::vector<std::pair<int, std::string>>> txt_memory;
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    if(sample_code.is_open()){
-        while(!sample_code.eof()){
-            std::string oneline;
-            getline(sample_code, oneline);
-            std::istringstream iss(oneline);
+    for(auto iter = parsing_table.begin(); iter != parsing_table.end(); iter++){
+        std::vector<std::string> container = (*iter);
 
-            std::vector<std::string> container;
-            container.clear();
-            std::string sub;
-            while(iss >> sub){
-                container.push_back(sub);
-            }
+        if (container.size() == 0){
+            continue;
+        }
 
-            if(container.size() == 0){
-                break;
-            }
+        std::string &first_word = container[0];
 
-            std::string& first_word = container[0];
-            if(first_word == ".data"){
-                data = true;
-                continue;
-            }
-            if(first_word == ".text"){
-                text = true;
-                data_memory.push_back(data_array); // "".text"가 나오는 순간 data영역이 끝나기 때문에 바로 아래의 if문에서 만들어진 마지막 data_array를 data_memory에 저장해주어야함
-                data_array.clear();
-                continue;
-            }
+        if (first_word == ".data"){
+            data = true;
+            continue;
+        }
+        if (first_word == ".text"){
+            text = true;
+            data_memory.push_back(data_array); // "".text"가 나오는 순간 data영역이 끝나기 때문에 바로 아래의 if문에서 만들어진 마지막 data_array를 data_memory에 저장해주어야함
+            data_array.clear();
+            continue;
+        }
 
-            if(data == true && text == false){ //data segment
-                number_of_data_line ++;
-                mem_now_add_data = mem_starting_add_data - 4*(number_of_data_line-1);
+        if (data == true && text == false){ //data segment
+            number_of_data_line++;
+            mem_now_add_data = mem_starting_add_data - 4 * (number_of_data_line - 1);
 
-                if(first_word.back() == ':'){
-                    if(data_array.size() != 0){
-                        data_memory.push_back(data_array);
-                        data_array.clear();
-                    }
-                    std::vector<int> variable  = {mem_now_add_data, num_extract(container[2])}; /////////////////////
-                    data_array.push_back(variable);
-                    /*
+            if (first_word.back() == ':'){
+                if (data_array.size() != 0)
+                {
+                    data_memory.push_back(data_array);
+                    data_array.clear();
+                }
+                std::vector<int> variable = {mem_now_add_data, num_extract(container[2])}; /////////////////////
+                data_array.push_back(variable);
+                /*
                     std::cout << "container[1] Memory address = " << variable[0];
                     std::cout << "container[2], value = " << num_extract(container[2]) << "," << variable[1] << std::endl;
                     std::cout << variable.back() << std::endl; // for test
                     */
-                }
+            }
 
-                if(first_word == ".word"){
-                    std::vector<int> variable  = {mem_now_add_data, num_extract(container[1])};
-                    data_array.push_back(variable);
-                    /*
+            if (first_word == ".word"){
+                std::vector<int> variable = {mem_now_add_data, num_extract(container[1])};
+                data_array.push_back(variable);
+                /*
                     std::cout << "container[0] Memory address = " << variable[0];
                     std::cout << "container[1], value = " << num_extract(container[1]) << "," << variable[1] << std::endl;
                     std::cout << variable.back() << std::endl; /// for test;
                     */
-                }
-
             }
-
-
-////좀더 고민
-            if(data == true && text == true){ //instruction
-                number_of_instruction_line ++;
-                mem_now_add_txt = mem_starting_add_txt - 4*(number_of_instruction_line - 1);
-                ////////////////                                                                  for test
-                for(int i = 0; i < container.size(); i++){
-                    std::cout << container[i] << " ";
-                }
-                std::cout << std::endl;//////////////////
-                int program_execution = print_output(R,I,J, container);
-            }
-            parsing_table.push_back(container);
         }
-        sample_code.close();
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// main: 이 시작
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        if (data == true && text == true){ //instruction
+            if(first_word.back() == ':'){
+                if(txt_array.size() != 0){
+                    txt_memory.push_back(txt_array);
+                    txt_array.clear();
+                }
+                
+                if(first_word == "exit:"){
+                    break;
+                }
+
+                continue;
+            }
+
+            else{ ////////////////////////////////////////////////////////2진수 string으로 만들고 다시 int로 만들어준 후 array에 추가.
+                number_of_instruction_line++;
+                mem_now_add_txt = mem_starting_add_txt - 4 * (number_of_instruction_line - 1);
+                std::string bit_to_int_instruction = print_output(R, I, J, container);
+                std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_to_int_instruction);
+                txt_array.push_back(value);
+                std::cout << "memory address = " << value.first << "bit instruction = " << value.second << std::endl;
+            }
+            
+            
+            ////////////////                                                                  for test
+            for (int i = 0; i < container.size(); i++)
+            {
+                std::cout << container[i] << " ";
+            }
+            std::cout << std::endl; //////////////////
+            
+        }
     }
 
     /*
+    for(int i = 0; i != parsing_table.size(); i++){
+        for(int n = 0; n!= parsing_table[i].size(); n++){
+            std::cout << parsing_table[i][n] << " " ;
+        }
+        std::cout<< std::endl;
+    }
+    */
+
+
+
+   
     std::cout << "number of data line = " << number_of_data_line << std::endl;
     std::cout << "number of instruction line = " << number_of_instruction_line << std::endl;
+     /*
     std::cout << "-----------------------------------------------------------------------------------------------------------------" << std::endl;
     for(auto i = data_memory.begin(); i != data_memory.end(); i++){
         std::cout << (*i).front().back() << std::endl;
