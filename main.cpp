@@ -208,7 +208,7 @@ std::string int_to_hex(int num) {   ///16진수 string으로 변환
 int binary_to_int(std::string binary_str) {
     int a = 1;
     int num = 0;
-    for (int i = binary_str.length() - 1; i >= 0; i--){
+    for (int i = binary_str.length() - 1; i >= 0; i--) {
         for (int j = 0; j < binary_str.length() - i - 1; j++) {
             a *= 2;
         }
@@ -216,8 +216,9 @@ int binary_to_int(std::string binary_str) {
             num += a;
         }
         a = 1;
-        return num;
     }
+    return num;
+}
 
 int address_by_finding_far_from_main(std::vector<std::vector<std::string>> parsing_table, std::string str, std::vector<std::vector<std::vector<int>>> data_memory) {
     int mem_starting_add_txt = 0x00400000;
@@ -634,6 +635,7 @@ int main() {
             for (int m = 0; m < txt_memory.size(); m++) {
                 for (int x = 0; x < txt_memory[m].size(); x++) {
                     fileout << txt_memory[m][x].second << std::endl;
+                    std::cout << "0x" + int_to_hex(binary_to_int(txt_memory[m][x].second)) << std::endl;
                 }
             }
 
