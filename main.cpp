@@ -205,6 +205,20 @@ std::string int_to_hex(int num) {   ///16진수 string으로 변환
     return str;
 }
 
+int binary_to_int(std::string binary_str) {
+    int a = 1;
+    int num = 0;
+    for (int i = binary_str.length() - 1; i >= 0; i--){
+        for (int j = 0; j < binary_str.length() - i - 1; j++) {
+            a *= 2;
+        }
+        if (binary_str[i] == '1') {
+            num += a;
+        }
+        a = 1;
+        return num;
+    }
+
 int address_by_finding_far_from_main(std::vector<std::vector<std::string>> parsing_table, std::string str, std::vector<std::vector<std::vector<int>>> data_memory) {
     int mem_starting_add_txt = 0x00400000;
     int number_of_main = 0;
@@ -610,8 +624,8 @@ int main() {
 
 
             std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
-            std::cout << "text_section_size = " << text_section_size << std::endl;
-            std::cout << "data_section_size = " << data_section_size << std::endl;
+            std::cout << "text_section_size = " << "0x"+int_to_hex(text_section_size) << std::endl;
+            std::cout << "data_section_size = " << "0x" + int_to_hex(data_section_size) << std::endl;
             std::cout << "--------------------------------------------------------------------------------------------32bit code size--------------------------------------------------------------------------------------------" << std::endl;
             fileout << bit_text_section_size.to_string() << std::endl;
             fileout << bit_data_section_size.to_string() << std::endl;
@@ -628,6 +642,7 @@ int main() {
             for (int m = 0; m < data_memory.size(); m++) {
                 for (int x = 0; x < data_memory[m].size(); x++) {
                     fileout << std::bitset<32>(data_memory[m][x][1]) << std::endl;
+                    std::cout << "0x" + int_to_hex(data_memory[m][x][1]) << std::endl;
                 }
             }
             std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
