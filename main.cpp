@@ -7,28 +7,19 @@
 #include <utility>
 #include <stdlib.h> ///for strtol
 /* //////////////////////////////////////what todo
-
 메모리 구현                                                                  ---------------------complete
 data segment, text segment 시작주소 잡기                                   --------------complete
 한줄한줄 읽을때마다 data segment에 저장하기. 4바이트                          --------------complete
 main이 시작되었을때 txt segment에 저장하기
 print_output 함수 정리하기                                                  -------------complete
-
-
 sum:
 sum_exit:
 exit: 가 시작되었을때                                                  --------------complete
-
 lb와 같이 offset 있는 명령어들 extract_number 함수 처리                     ----------------complete
 la                                                                       ----------------complete
 연산자들 조건
-
 숫자들 한줄로 이어서 string으로 만들고 난 후 int로 바꾸고 16진수로 바꾸기   ----------------complete
-
 한번 다 읽은 다음에 파싱해야함.                                           ----------------complete
-
-
-
 ///////////////////////////////////// */
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////format 클래스 파일
@@ -152,11 +143,6 @@ std::vector<std::vector<std::string>>& read_once(std::ifstream& sample_code, std
         }
         sample_code.close();
     }
-    /*
-        if(parsing_table.back().size() == 0){ /////////////s파일 맨마지막 줄이 비었을 때
-            parsing_table.pop_back();
-        }
-    */
     return parsing_table;
 }
 
@@ -208,7 +194,7 @@ std::string int_to_hex(int num) {   ///16진수 string으로 변환
 int binary_to_int(std::string binary_str) {
     int a = 1;
     int num = 0;
-    for (int i = binary_str.length() - 1; i >= 0; i--) {
+    for (int i = binary_str.length() - 1; i >= 0; i--){
         for (int j = 0; j < binary_str.length() - i - 1; j++) {
             a *= 2;
         }
@@ -296,7 +282,6 @@ std::string calculate_R_format(std::vector<R_format>::iterator iter, std::vector
             iter->rt = num_extract(container[3]);
         }
     }
-    std::cout << std::bitset<6>(code_num) << " " << std::bitset<5>((iter)->rs) << " " << std::bitset<5>((iter)->rt) << " " << std::bitset<5>((iter)->rd) << " " << std::bitset<5>((iter)->shamt) << " " << std::bitset<6>((iter)->funct) << std::endl;
 
     std::bitset<6>bit_op(code_num);
     std::bitset<5>bit_rs((iter)->rs);
@@ -306,7 +291,6 @@ std::string calculate_R_format(std::vector<R_format>::iterator iter, std::vector
     std::bitset<6>bit_funct((iter)->funct);
 
     std::string bit_instruction = bit_op.to_string() + bit_rs.to_string() + bit_rt.to_string() + bit_rd.to_string() + bit_shamt.to_string() + bit_funct.to_string();
-    std::cout << bit_instruction << std::endl;
     return bit_instruction;
 
 }
@@ -332,9 +316,6 @@ std::string calculate_I_format(std::vector<I_format>::iterator iter, std::vector
             int branch_address = address_by_finding_far_from_main(parsing_table, container[3], data_memory);
             int offset = (branch_address - beq_bne_address - 4) / 4;
             float rest = (branch_address - beq_bne_address - 4) % 4;
-            if (rest != 0) {
-                std::cout << "beq, bne instruction's offset calculation is wrong. 4로 나눌 때 나머지 != 0 " << ", 나머지 = " << rest << std::endl;
-            }
             iter->immediate_or_address = offset;
         }
 
@@ -344,47 +325,30 @@ std::string calculate_I_format(std::vector<I_format>::iterator iter, std::vector
             std::vector<std::string> classified_string = classify_bracket(container[2]);
             iter->rs = num_extract(classified_string.back());
             iter->immediate_or_address = std::stoi(classified_string.front());
-            std::cout << "immediate or address = " << iter->immediate_or_address << std::endl; ///////////////////////////for test
-            std::cout << "rs = " << iter->rs << std::endl; ///////////////////////////for test
         }
     }
-    std::cout << std::bitset<6>(code_num) << " " << std::bitset<5>((iter)->rs) << " " << std::bitset<5>((iter)->rt) << " " << std::bitset<16>((iter)->immediate_or_address) << std::endl;
     std::bitset<6>bit_code_num(code_num);
     std::bitset<5>bit_rs((iter)->rs);
     std::bitset<5>bit_rt((iter)->rt);
     std::bitset<16>bit_immediate((iter)->immediate_or_address);
 
     std::string bit_instruction = bit_code_num.to_string() + bit_rs.to_string() + bit_rt.to_string() + bit_immediate.to_string();
-    std::cout << bit_instruction << std::endl;
-    return bit_instruction; //std::stoll(bit_instruction);
-
+    return bit_instruction; 
 }
 
 std::string calculate_J_format(std::vector<J_format>::iterator iter, std::vector<std::string> container, std::vector<std::vector<std::string>> parsing_table, std::vector<std::vector<std::vector<int>>> data_memory) {
     int code_num = iter->opcode;
     int jumping_address = address_by_finding_far_from_main(parsing_table, container[1], data_memory);
     iter->jump_target = jumping_address / 4;
-    std::cout << code_num << " " << (iter)->jump_target << std::endl;
     std::bitset<6>bit_code_num(code_num);
     std::bitset<26>bit_jump_target((iter)->jump_target);
 
     std::string bit_instruction = bit_code_num.to_string() + bit_jump_target.to_string();
-    std::cout << bit_instruction << std::endl;
-    return bit_instruction; //std::stoll(bit_instruction);
-
+    return bit_instruction; 
 }
 
 std::string print_output(std::vector<R_format> R, std::vector<I_format> I, std::vector<J_format> J, std::vector<std::string> container, std::vector<std::vector<std::string>> parsing_table, std::vector<std::vector<std::vector<int>>> data_memory) {
-
-    ////////////////                                                                  for test
-    for (int i = 0; i < container.size(); i++)
-    {
-        std::cout << container[i] << " ";
-    }
-    std::cout << std::endl; //////////////////
-
-
-    for (auto iter = R.begin(); iter != R.end(); iter++) {
+     for (auto iter = R.begin(); iter != R.end(); iter++) {
         if (iter->instruction_name == container[0]) {
             return calculate_R_format(iter, container, parsing_table);
         }
@@ -434,7 +398,7 @@ int main() {
             std::string file_name = split_command[2];
             std::ofstream fileout(file_name + ".o");                  ///////////////////////file 생성
 
-            std::cout << "program start" << std::endl;
+            //std::cout << "program start" << std::endl;
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// instruction들의 초기설정 
             R_format addu("addu", 0, 0x21), _and("and", 0, 0x24), jr("jr", 0, 8), nor("nor", 0, 0x27), _or("or", 0, 0x25), sltu("sltu", 0, 0x2b), sll("sll", 0, 0), srl("srl", 0, 2), subu("subu", 0, 0x23);
@@ -573,7 +537,6 @@ int main() {
                                 idx++;
                             }
 
-
                             std::string upfour;
                             std::string downfour;
                             for (int i = 0; i < 4; i++) {
@@ -588,7 +551,6 @@ int main() {
                             bit_instruction = print_output(R, I, J, new_container, parsing_table, data_memory);
                             std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_instruction);
                             txt_array.push_back(value);
-                            std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
 
                             if (downfour != "0000") {   ///////////ori 해야함.
                                 number_of_instruction_line++;
@@ -597,16 +559,12 @@ int main() {
                                 bit_instruction = print_output(R, I, J, second_new_container, parsing_table, data_memory);
                                 std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_instruction);
                                 txt_array.push_back(value);
-                                std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
-
                             }
-
                         }
                         else {
                             std::string bit_instruction = print_output(R, I, J, container, parsing_table, data_memory);
                             std::pair<int, std::string> value = std::make_pair(mem_now_add_txt, bit_instruction);
                             txt_array.push_back(value);
-                            std::cout << "memory address = " << value.first << " bit instruction = " << value.second << std::endl;
                         }
                     }
 
@@ -624,14 +582,14 @@ int main() {
 
 
 
-            std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
-            std::cout << "text_section_size = " << "0x"+int_to_hex(text_section_size) << std::endl;
-            std::cout << "data_section_size = " << "0x" + int_to_hex(data_section_size) << std::endl;
-            std::cout << "--------------------------------------------------------------------------------------------32bit code size--------------------------------------------------------------------------------------------" << std::endl;
+            //std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "0x"+int_to_hex(text_section_size) << std::endl;
+            std::cout << "0x"+int_to_hex(data_section_size) << std::endl;
+            //std::cout << "--------------------------------------------------------------------------------------------32bit code size--------------------------------------------------------------------------------------------" << std::endl;
             fileout << bit_text_section_size.to_string() << std::endl;
             fileout << bit_data_section_size.to_string() << std::endl;
-            std::cout << "--------------------------------------------------------------------------------------------32bit instruction--------------------------------------------------------------------------------------------" << std::endl;
-            std::cout << "txt_memory.size() = " << txt_memory.size() << std::endl;
+            //std::cout << "--------------------------------------------------------------------------------------------32bit instruction--------------------------------------------------------------------------------------------" << std::endl;
+            //std::cout << "txt_memory.size() = " << txt_memory.size() << std::endl;
             for (int m = 0; m < txt_memory.size(); m++) {
                 for (int x = 0; x < txt_memory[m].size(); x++) {
                     fileout << txt_memory[m][x].second << std::endl;
@@ -639,17 +597,17 @@ int main() {
                 }
             }
 
-            std::cout << "--------------------------------------------------------------------------------------------32bit value--------------------------------------------------------------------------------------------" << std::endl;
-            std::cout << "data_memory.size() = " << data_memory.size() << std::endl;
+            //std::cout << "--------------------------------------------------------------------------------------------32bit value--------------------------------------------------------------------------------------------" << std::endl;
+            //std::cout << "data_memory.size() = " << data_memory.size() << std::endl;
             for (int m = 0; m < data_memory.size(); m++) {
                 for (int x = 0; x < data_memory[m].size(); x++) {
                     fileout << std::bitset<32>(data_memory[m][x][1]) << std::endl;
                     std::cout << "0x" + int_to_hex(data_memory[m][x][1]) << std::endl;
                 }
             }
-            std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
-            std::cout << "number of data line = " << number_of_data_line << std::endl;
-            std::cout << "number of instruction line = " << number_of_instruction_line << std::endl;
+            //std::cout << "--------------------------------------------------------------------------------------------for the test--------------------------------------------------------------------------------------------" << std::endl;
+            //std::cout << "number of data line = " << number_of_data_line << std::endl;
+            //std::cout << "number of instruction line = " << number_of_instruction_line << std::endl;
             
             fileout.close();
         }
