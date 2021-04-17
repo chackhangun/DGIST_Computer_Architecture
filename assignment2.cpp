@@ -28,7 +28,7 @@ class R_format : public Myformats {
         std::string type_name = "R";
         int rs, rt, rd, shamt, funct;
         void operation(std::vector<int> my_register){
-            if(insturction_name == "addu"){
+            if(instruction_name == "addu"){
                 my_register[rd] = my_register[rs] + my_register[rt];
                 return;
             }
@@ -37,19 +37,19 @@ class R_format : public Myformats {
                 
             }
 
-            if(instruction_name == 'jr'){
+            if(instruction_name == "jr"){
                 
             }
 
-            if(instruction_name == 'nor'){
+            if(instruction_name == "nor"){
                 
             }
 
-            if(instruction_name == 'or'){
+            if(instruction_name == "or"){
                 
             }
 
-            if(instruction_name == 'sltu'){
+            if(instruction_name == "sltu"){
                 if(my_register[rs] < my_register[rt]){
                     my_register[rd] = 1;
                 }
@@ -58,17 +58,17 @@ class R_format : public Myformats {
                 }
             }
 
-            if(instruction_name == 'sll'){
+            if(instruction_name == "sll"){
                 my_register[rd] = my_register[rt] << shamt;
                 return;
             }
 
-            if(instruction_name == 'srl'){
+            if(instruction_name == "srl"){
                 my_register[rd] = my_register[rt] >> shamt;
                 return;
             }
 
-            if(instruction_name == 'subu'){
+            if(instruction_name == "subu"){
                 my_register[rd] = my_register[rs] - my_register[rt];
                 return;
             }
@@ -148,7 +148,7 @@ std::string int_to_hex(int num) {   ///16진수 string으로 변환 // 동작 �
 
 int change_instruction(std::string instruction, int start, int final){
     std::string bit_num;
-    for(auto iter = instruction.begin()+start; iter != instruction.begin()+fianl; iter++){
+    for(auto iter = instruction.begin()+start; iter != instruction.begin()+final; iter++){
         bit_num.push_back(*iter);
     }
     int int_num = binary_to_int(bit_num);
@@ -193,12 +193,12 @@ int main(){
     std::vector<std::string> data_memory;
 
     std::ifstream reading;
-    reading.open(object_file);
+    reading.open("sample.o");
     if(reading.is_open()){
         int line_num = 0;
         int startline_data_section = 0;
         int txt_section_size;
-        int data_section size;
+        int data_section_size;
         std::string hex_num;
         int demical_num;
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,7 +208,7 @@ int main(){
         while(!reading.eof()){
             getline(reading, hex_num);
             const char* transform = hex_num.c_str();
-            demical_num = strtol(transform, NULL, 16);
+            demical_num = strtol(transform, NULL, 16);                           ////16진수 10진수로 바꾸기
             if(line_num == 0){
                 txt_section_size = demical_num;
                 startline_data_section = 1 + (demical_num / 4) + 1 ;
@@ -222,11 +222,11 @@ int main(){
             }
             else{                    
                 std::bitset<32>bit_num(demical_num);
-                std::string bit_oneline = bit_num.to_string();
-
+                std::string bit_oneline = bit_num.to_string();                  /////bitset을 string으로.
+                bit_oneline = 
                 if(line_num < startline_data_section){
                     instruction_memory.push_back(bit_oneline);
-                    line_num++
+                    line_num++;
                     continue;
                 }
 
@@ -245,11 +245,11 @@ int main(){
     std::vector<int> my_register(31,0); ///0-31 reg 초기화
 
     for(auto iter = instruction_memory.begin(); iter != instruction_memory.end(); iter++){
-        std::vector<int> int_instruction = change_to_decimal_instruction(*iter)
-        std::string type_checking = NULL;
-        std::string ins_name = NULL;
+        std::vector<int> int_instruction = change_to_decimal_instruction(*iter);
+        std::string type_checking = "none";
+        std::string ins_name = "none";
 
-        if(type_checking == NULL){
+        if(type_checking == "none"){
             for(auto iter2 = R.begin(); iter2 != R.end(); iter2++){
                 if(*iter2->opcode == int_instruction[0]){
                     if((*iter2->funct) == int_instruction[5]){
@@ -259,30 +259,23 @@ int main(){
                         *iter2->rt = int_instruction[2];
                         *iter2->rd = int_instruction[3];
                         *iter2->shamt = int_instruction[4];
-
                         *iter2->operation(my_register);
                     }
                 }
             }
         }
 
-        if(type_checking == NULL){
+        if(type_checking == "none"){
             for(auto iter3 = I.begin(); iter3 != I.end(); iter3++){
-                if(*iter3->opcode == int_opcode){
-                    type_checking = *iter3->type_name;
-                    ins_name = *iter3->instruction_name;
-                    break;
-                }
+
+    
             }
         }
 
-        if(type_checking == NULL){
+        if(type_checking == "none"){
             for(auto iter4 = J.begin(); iter4 != J.end(); iter4++){
-                if(*iter4->opcode == int_opcode){
-                    type_checking = *iter4->type_name;
-                    ins_name = *iter4->instruction_name;
-                    break;
-                }
+
+    
             }
         }
 
@@ -293,5 +286,3 @@ int main(){
 
 
 }
-
-
