@@ -9,120 +9,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//// format 클래스 만들어주기
-
-class Myformats {
-    public:
-        Myformats() {
-            opcode = 0;
-            instruction_name = "none";
-        }
-        virtual ~Myformats() {};
-
-        int opcode;
-        std::string instruction_name;
-    };
-
-class R_format : public Myformats {
-    public:
-        std::string type_name = "R";
-        int rs, rt, rd, shamt, funct;
-        void operation(std::vector<int> my_register){
-            if(instruction_name == "addu"){
-                my_register[rd] = my_register[rs] + my_register[rt];
-                return;
-            }
-
-            if(instruction_name == "and"){         //// rs와 rt의 logical and연산을 rd에 저장
-                
-            }
-
-            if(instruction_name == "jr"){
-                
-            }
-
-            if(instruction_name == "nor"){
-                
-            }
-
-            if(instruction_name == "or"){
-                
-            }
-
-            if(instruction_name == "sltu"){
-                if(my_register[rs] < my_register[rt]){
-                    my_register[rd] = 1;
-                }
-                else{
-                    my_register[rd] = 0;
-                }
-            }
-
-            if(instruction_name == "sll"){
-                my_register[rd] = my_register[rt] << shamt;
-                return;
-            }
-
-            if(instruction_name == "srl"){
-                my_register[rd] = my_register[rt] >> shamt;
-                return;
-            }
-
-            if(instruction_name == "subu"){
-                my_register[rd] = my_register[rs] - my_register[rt];
-                return;
-            }
-        }
-
-        R_format() {
-            rs = rt = rd = shamt = funct = 0;
-        }
-        R_format(std::string name, int op, int funct_num) {
-            rs = rt = rd = shamt = funct = 0;
-            instruction_name = name;
-            opcode = op;
-            funct = funct_num;
-        }
-        virtual ~R_format() {};
-};
-
-class I_format : public Myformats {
-    public:
-        std::string type_name = "I";
-        int rs, rt, immediate_or_address;
-        void operation(){}
-
-        I_format() {
-            rs = rt = immediate_or_address = 0;
-        }
-        I_format(std::string name, int op_num) {
-            rs = rt = immediate_or_address = 0;
-            instruction_name = name;
-            opcode = op_num;
-        }
-        virtual ~I_format() {};
-};
-
-class J_format : public Myformats {
-    public:        
-        std::string type_name = "J";
-        int jump_target;
-        void operation(){}
-
-        J_format() {
-            jump_target = 0;
-        }
-        J_format(std::string name, int op_num) {
-            jump_target = 0;
-            instruction_name = name;
-            opcode = op_num;
-        }
-        virtual ~J_format() {};
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int binary_to_int(std::string binary_str) {  ///동작 체크 필요
     int a = 1; 
     int num = 0;
@@ -171,12 +57,192 @@ std::vector<int> change_to_decimal_instruction(std::string instruction){
 
     return decimal_instruction;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Myformats {
+    public:
+        Myformats() {
+            opcode = 0;
+            instruction_name = "none";
+        }
+        virtual ~Myformats() {};
+
+        int opcode;
+        std::string instruction_name;
+    };
+
+class R_format : public Myformats {
+    public:
+        std::string type_name = "R";
+        int rs, rt, rd, shamt, funct;
+        void operation(std::vector<int> my_register){
+            std::bitset<5> bit_rs(my_register[rs]);
+            std::bitset<5> bit_rt(my_register[rt]);
+
+            if(instruction_name == "addu"){
+                my_register[rd] = my_register[rs] + my_register[rt];
+                return;
+            }
+
+            if(instruction_name == "and"){         
+                std::bitset<5> bit_rd = (bit_rs & bit_rt);
+                my_register[rd] = binary_to_int(bit_rd.to_string());
+                return;
+            }
+
+            if(instruction_name == "jr"){          ////////// pc설정 필요. pc를 받아야함.
+                
+            }
+
+            if(instruction_name == "nor"){
+                std::bitset<5> bit_rd = (~(bit_rs | bit_rt));
+                my_register[rd] = binray_to_int(bit_rd.to_string());
+                return;
+            }
+
+            if(instruction_name == "or"){
+                std::bitset<5> bit_rd = (bit_rs | bit_rt);
+                my_register[rd] = binray_to_int(bit_rd.to_string());
+                return;
+            }
+
+            if(instruction_name == "sltu"){
+                if(my_register[rs] < my_register[rt]){
+                    my_register[rd] = 1;
+                }
+                else{
+                    my_register[rd] = 0;
+                }
+                return;
+            }
+
+            if(instruction_name == "sll"){
+                my_register[rd] = (my_register[rt] << shamt);
+                return;
+            }
+
+            if(instruction_name == "srl"){
+                my_register[rd] = (my_register[rt] >> shamt);
+                return;
+            }
+
+            if(instruction_name == "subu"){
+                my_register[rd] = my_register[rs] - my_register[rt];
+                return;
+            }
+        }
+
+        R_format() {
+            rs = rt = rd = shamt = funct = 0;
+        }
+        R_format(std::string name, int op, int funct_num) {
+            rs = rt = rd = shamt = funct = 0;
+            instruction_name = name;
+            opcode = op;
+            funct = funct_num;
+        }
+        virtual ~R_format() {};
+};
+
+class I_format : public Myformats {
+    public:
+        std::string type_name = "I";
+        int rs, rt, immediate_or_address;
+        void operation(std::vector<int> my_register){
+            std::bitset<5> bit_rs(my_register[rs]);
+            std::bitset<16> bit_imm(my_register[immediate_or_address]);
+
+            if(instruction_name == "addiu"){ ///////rs와 sign-extened된 immediate의 합을 rt에 저장.
+
+            }
+
+            if(instruction_name == "andi"){
+
+            }
+
+            if(instruction_name == "beq"){
+
+            }
+
+            if(instruction_name == "bne"){
+
+            }
+
+            if(instruction_name == "lui"){
+
+            }
+
+            if(instruction_name == "lw"){
+
+            }
+
+            if(instruction_name == "lb"){
+
+            }
+
+            if(instruction_name == "ori"){
+
+            }
+
+            if(instruction_name == "sltiu"){
+
+            }
+
+            if(instruction_name == "sw"){
+
+            }
+
+            if(instruction_name == "sb"){
+
+            }
+        }
+
+        I_format() {
+            rs = rt = immediate_or_address = 0;
+        }
+        I_format(std::string name, int op_num) {
+            rs = rt = immediate_or_address = 0;
+            instruction_name = name;
+            opcode = op_num;
+        }
+        virtual ~I_format() {};
+};
+
+class J_format : public Myformats {
+    public:        
+        std::string type_name = "J";
+        int jump_target;
+        void operation(std::vector<int> my_register){
+            if(instruction_name == "j"){
+
+            }
+
+            if(instruction_name == "jal"){
+
+            }
+        }
+
+        J_format() {
+            jump_target = 0;
+        }
+        J_format(std::string name, int op_num) {
+            jump_target = 0;
+            instruction_name = name;
+            opcode = op_num;
+        }
+        virtual ~J_format() {};
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
 int main(){
+
+
+    ///// pc 설정하기
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,7 +308,7 @@ int main(){
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    std::vector<int> my_register(31,0); ///0-31 reg 초기화
+    std::vector<int> my_register(32,0); ///0-31 reg 초기화
 
     for(auto iter = instruction_memory.begin(); iter != instruction_memory.end(); iter++){
         std::vector<int> int_instruction = change_to_decimal_instruction(*iter);
