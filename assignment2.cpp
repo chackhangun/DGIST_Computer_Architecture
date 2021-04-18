@@ -107,35 +107,34 @@ class R_format : public Myformats {
     public:
         std::string type_name = "R";
         int rs, rt, rd, shamt, funct;
-        void operation(std::vector<int> my_register, std::vector<int> pc_num){                  ////register 상태와 pc table 받아야함.
-            std::bitset<5> bit_rs(my_register[rs]);
-            std::bitset<5> bit_rt(my_register[rt]);
+        void operation(std::vector<std::bitset<32>> my_register, std::vector<int> pc_num){                  ////register 상태와 pc table 받아야함.
+            int rs_value = int(my_register[rs].to_ullong());
+            int rt_value = int(my_register[rt].to_ullong());
+            int rd_value = 0;
 
             if(instruction_name == "addu"){
-                my_register[rd] = my_register[rs] + my_register[rt];
+                rd_value = rs_value + rt_value;
+                my_register[rd] = std::bitset<32>(rd_value);
                 return;
             }
 
             if(instruction_name == "and"){         
-                std::bitset<5> bit_rd = (bit_rs & bit_rt);
-                my_register[rd] = binary_to_int(bit_rd.to_string());
+                my_register[rd] = (my_register[rs] & my_register[rt]);
                 return;
             }
 
             if(instruction_name == "nor"){
-                std::bitset<5> bit_rd = (~(bit_rs | bit_rt));
-                my_register[rd] = binary_to_int(bit_rd.to_string());
+                my_register[rd] = (~(my_register[rs] | my_register[rt]));
                 return;
             }
 
             if(instruction_name == "or"){
-                std::bitset<5> bit_rd = (bit_rs | bit_rt);
-                my_register[rd] = binary_to_int(bit_rd.to_string());
+                my_register[rd] = (my_register[rs] | my_register[rt]);
                 return;
             }
 
             if(instruction_name == "sltu"){
-                if(my_register[rs] < my_register[rt]){
+                if(rs_value < rt_value){
                     my_register[rd] = 1;
                 }
                 else{
@@ -155,13 +154,15 @@ class R_format : public Myformats {
             }
 
             if(instruction_name == "subu"){
-                my_register[rd] = my_register[rs] - my_register[rt];
+                rd_value = rs_value - rt_value;
+                my_register[rd] = std::bitset<32>(rd_value);
                 return;
             }
         }
 
-        int operation_jr(std::vector<int> my_register, std::vector<int> pc_num){///pc_num에서 rs안에 들어있는 주소와 같은 값의 index를 구한다.
-            int index = find_pcnum_index_for_branch(pc_num, my_register[rs]);
+        int operation_jr(std::vector<std::bitset <32>> my_register, std::vector<int> pc_num){///pc_num에서 rs안에 들어있는 주소와 같은 값의 index를 구한다.
+            int decimal_num = binary_to_int(my_register[rs].to_string());
+            int index = find_pcnum_index_for_branch(pc_num, decimal_num);
             return index;
         }
 
@@ -181,28 +182,52 @@ class I_format : public Myformats {
     public:
         std::string type_name = "I";
         int rs, rt, immediate_or_address;
-        void operation(std::vector<int> my_register){
-            std::bitset<5> bit_rs(my_register[rs]);
-            std::bitset<16> bit_imm(my_register[immediate_or_address]);
+        int operation_beq(std::vector<std::bitset<32>> my_register, std::vector<int> pc_num, int now_index){ ///분기해야할 pc index찾아주기
+            if(my_register[rs].to_string() == my_register[rt].to_string()){
+                int target_address = pc_num[now_index] + 4 + immediate_or_address*4;
+                int branch_idx = find_pcnum_index_for_branch(pc_num, target_address);
+                return branch_idx;
+            }
+            else{
+                return -1;                    //rs와 rt가 다르면 -1 리턴.
+            }
+        }
+
+        int operation_bne(std::vector<std::bitset<32>> my_register, std::vector<int> pc_num, int now_index){ ///분기해야할 pc index찾아주기
+            if(my_register[rs].to_string() != my_register[rt].to_string()){
+                int target_address = pc_num[now_index] + 4 + immediate_or_address*4;
+                int branch_idx = find_pcnum_index_for_branch(pc_num, target_address);
+                return branch_idx;
+            }
+            else{
+                return -1;                    //rs와 rt가 다르면 -1 리턴.
+            }
+        }
+
+        void operation(std::vector<std::bitset<32>> my_register){
+            int rs_value = int(my_register[rs].to_ullong());
+            int rt_value = int(my_register[rt].to_ullong());
 
             if(instruction_name == "addiu"){ ///////rs와 sign-extened된 immediate의 합을 rt에 저장.
-
+                rt_value = rs_value + immediate_or_address;
+                my_register[rt] = std::bitset<32>(rt_value);
             }
 
             if(instruction_name == "andi"){
-
+                my_register[rt] = my_register[rs] & std::bitset<32>(immediate_or_address);
             }
 
-            if(instruction_name == "beq"){
-
-            }
-
-            if(instruction_name == "bne"){
-
-            }
 
             if(instruction_name == "lui"){
-
+                std::bitset<16> imm_16bit (immediate_or_address);
+                for(int idx = 0; idx < 32; idx++){
+                    if(idx<16){
+                        my_register[rt][idx] = 0;
+                    }
+                    else{
+                        my_register[rt][idx] = imm_16bit[idx-16];
+                    }
+                }
             }
 
             if(instruction_name == "lw"){
@@ -352,7 +377,7 @@ int main(){
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    std::vector<int> my_register(32,0); ///0-31 reg 초기화
+    std::vector<std::bitset<32>> my_register(32,0); ///0-31 reg 초기화
     int instruction_memory_index = 0;
     std::vector<std::string>::iterator instruction_memory_index = instruction_memory.begin();                 ///instruction_memory는 32비트 십진수 but string
 
