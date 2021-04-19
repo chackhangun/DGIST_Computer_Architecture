@@ -164,7 +164,6 @@ void plus_big_small_index(std::vector<int>& index) { ////check one more
         index[1] ++;
     }
 }
-
 void minus_big_small_index(std::vector<int>& index) { ///check one more
     if (index[0] != 0 && index[1] == 0) {
         index[0] --;
@@ -190,7 +189,7 @@ public:
         opcode = 0;
         instruction_name = "none";
     }
-    virtual ~Myformats(){};
+    virtual ~Myformats() {};
 
     int opcode;
     std::string instruction_name;
@@ -201,7 +200,7 @@ class R_format : public Myformats
 public:
     std::string type_name = "R";
     int rs, rt, rd, shamt, funct;
-    void operation(std::vector<std::bitset<32>> &my_register)
+    void operation(std::vector<std::bitset<32>>& my_register)
     { ////register 상태와 pc table 받아야함.
         int rs_value = int(my_register[rs].to_ullong());
         int rt_value = int(my_register[rt].to_ullong());
@@ -283,7 +282,7 @@ public:
         opcode = op;
         funct = funct_num;
     }
-    virtual ~R_format(){};
+    virtual ~R_format() {};
 };
 
 class I_format : public Myformats
@@ -301,7 +300,7 @@ public:
         }
         else
         {
-            return {-1, 0}; //rs와 rt가 다르면 -1 리턴.
+            return { -1, 0 }; //rs와 rt가 다르면 -1 리턴.
         }
     } ///checked
 
@@ -315,11 +314,11 @@ public:
         }
         else
         {
-            return {-1, 0}; //rs와 rt가 다르면 -1 리턴.
+            return { -1, 0 }; //rs와 rt가 다르면 -1 리턴.
         }
     } ///checked
 
-    void operation_lw_or_lb(std::vector<std::bitset<32>> &my_register, std::vector<std::vector<std::string>> &data_memory, std::vector<std::vector<int>> &data_address)
+    void operation_lw_or_lb(std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address)
     {
         int rs_value = int(my_register[rs].to_ullong());
         int address = rs_value + immediate_or_address;
@@ -340,7 +339,7 @@ public:
         }
     } //checked
 
-    void operation_sw_or_sb(std::vector<std::bitset<32>> &my_register, std::vector<std::vector<std::string>> &data_memory, std::vector<std::vector<int>> &data_address)
+    void operation_sw_or_sb(std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address)
     {
         int rt_value = int32_t(my_register[rt].to_ulong());
         int rs_value = int32_t(my_register[rs].to_ulong());
@@ -361,7 +360,7 @@ public:
         }
     }
 
-    void operation(std::vector<std::bitset<32>> &my_register)
+    void operation(std::vector<std::bitset<32>>& my_register)
     {
         int rs_value = int(my_register[rs].to_ullong());
         int rt_value = int(my_register[rt].to_ullong());
@@ -431,7 +430,7 @@ public:
         instruction_name = name;
         opcode = op_num;
     }
-    virtual ~I_format(){};
+    virtual ~I_format() {};
 };
 
 class J_format : public Myformats
@@ -469,7 +468,7 @@ public:
         instruction_name = name;
         opcode = op_num;
     }
-    virtual ~J_format(){};
+    virtual ~J_format() {};
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -539,9 +538,9 @@ int main()
         I_format addiu("addiu", 9), andi("andi", 0xc), beq("beq", 4), bne("bne", 5), lui("lui", 0xf), lw("lw", 0x23), ori("ori", 0xd), sltiu("sltiu", 0xb), sw("sw", 0x2b), lb("lb", 0x20), sb("sb", 0x28);
         J_format j("j", 2), jal("jal", 3);
 
-        std::vector<R_format> R{addu, _and, jr, nor, _or, sltu, sll, srl, subu};
-        std::vector<I_format> I{addiu, andi, beq, bne, lui, lw, ori, sltiu, sw, lb, sb};
-        std::vector<J_format> J{j, jal};
+        std::vector<R_format> R{ addu, _and, jr, nor, _or, sltu, sll, srl, subu };
+        std::vector<I_format> I{ addiu, andi, beq, bne, lui, lw, ori, sltiu, sw, lb, sb };
+        std::vector<J_format> J{ j, jal };
 
         std::string one_byte_instruction;
         std::vector<std::string> four_byte_instruction;
@@ -569,7 +568,7 @@ int main()
             while (!reading.eof())
             {
                 getline(reading, hex_num);
-                const char *transform = hex_num.c_str();
+                const char* transform = hex_num.c_str();
                 decimal_num = strtol(transform, NULL, 16); ////16진수 10진수로 바꾸기
                 if (line_num == 0)
                 { ////text section size 설정
@@ -674,7 +673,7 @@ int main()
 
             if (exist_n == true)
             {
-                if (instruction_memory_big_index > command_n_instruction + 1)
+                if (instruction_memory_big_index >= command_n_instruction)
                 {
                     break;
                 }
@@ -775,7 +774,7 @@ int main()
                         j->jump_target = int_instruction[1];
                         if (j->instruction_name == "jal")
                         {
-                            std::vector<int> new_idx = {instruction_memory_big_index, instruction_memory_small_index}; ///돌아올 pc를 저장해야한다.
+                            std::vector<int> new_idx = { instruction_memory_big_index, instruction_memory_small_index }; ///돌아올 pc를 저장해야한다.
                             //plus_big_small_index(new_idx);
                             my_register[31] = instruction_address[new_idx[0]][new_idx[1]]; ///ra에 다음 실행할 ins의 주소를 저장.
                         }
@@ -817,7 +816,7 @@ int main()
             for (int n = 0; n < my_register.size(); n++)
             {
                 std::cout << "R" << n << ":"
-                          << " 0x" << int_to_hex(int(my_register[n].to_ulong())) << std::endl;
+                    << " 0x" << int_to_hex(int(my_register[n].to_ulong())) << std::endl;
             }
         }
 
@@ -844,10 +843,10 @@ int main()
                 second_address.push_back(address_range[n]);
             }
 
-            const char *first = first_address.c_str();
+            const char* first = first_address.c_str();
             int d_first_address = strtol(first, NULL, 16);
 
-            const char *second = second_address.c_str();
+            const char* second = second_address.c_str();
             int d_second_address = strtol(second, NULL, 16);
             for (int n = d_first_address; n < d_second_address + 1; n++)
             {
