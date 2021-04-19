@@ -545,10 +545,6 @@ int main() {
                             data_address.push_back(byte_data_address);                   ///data memory address 설정
                             byte_data_address.clear();
                             line_num++;
-
-                            std::cout << data_memory.back().front() << std::endl;
-                            std::cout << "data address size = " << data_address.size() << std::endl;
-                            std::cout << "data memory size = " << data_memory.size() << std::endl;
                             continue;
                         }
                         else {
@@ -668,9 +664,8 @@ int main() {
                     }
                 }
             }
-
             if (exist_d == true) {
-                std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][instruction_memory_small_index]) << std::endl;
+                std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
                 std::cout << "Register:" << std::endl;
                 for (int n = 0; n < my_register.size(); n++) {
                     std::cout << "R" << n << ": 0x" << int_to_hex(binary_to_int(my_register[n].to_string())) << std::endl;
@@ -680,16 +675,13 @@ int main() {
 
                 }
             }
-            if (instruction_memory_small_index == 4) {
-                instruction_memory_big_index++;
-                instruction_memory_small_index = 0;
-            }
-            else {
-                instruction_memory_small_index++;
-            }
+
+            instruction_memory_big_index++;
+            ///data_memory_big_index
+
         }
         if (exist_d == false) {
-            std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][instruction_memory_small_index]) << std::endl;
+            std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
             std::cout << "Register:" << std::endl;
             for (int n = 0; n < my_register.size(); n++) {
                 std::cout << "R" << n << ":" << " 0x" << int_to_hex(binary_to_int(my_register[n].to_string())) << std::endl;
@@ -702,7 +694,4 @@ int main() {
          //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     }
-
-
-
 }
