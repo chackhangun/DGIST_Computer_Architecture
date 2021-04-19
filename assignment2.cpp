@@ -135,7 +135,7 @@ class R_format : public Myformats {
 public:
     std::string type_name = "R";
     int rs, rt, rd, shamt, funct;
-    void operation(std::vector<std::bitset<32>> my_register, std::vector<int> instruction_address) {                  ////register 상태와 pc table 받아야함.
+    void operation(std::vector<std::bitset<32>>& my_register, std::vector<int>& instruction_address) {                  ////register 상태와 pc table 받아야함.
         int rs_value = int(my_register[rs].to_ullong());
         int rt_value = int(my_register[rt].to_ullong());
         int rd_value = 0;
@@ -188,7 +188,7 @@ public:
         }
     }
 
-    int operation_jr(std::vector<std::bitset <32>> my_register, std::vector<int> instruction_address) {///pc_num에서 rs안에 들어있는 주소와 같은 값의 index를 구한다.
+    int operation_jr(std::vector<std::bitset<32>> my_register, std::vector<int> instruction_address) {///pc_num에서 rs안에 들어있는 주소와 같은 값의 index를 구한다.
         int decimal_num = binary_to_int(my_register[rs].to_string());
         int index = find_address_index_for_branch(instruction_address, decimal_num);
         return index;
@@ -232,7 +232,7 @@ public:
         }
     }
 
-    void operation_lw_or_lb(std::vector<std::bitset<32>> my_register, std::vector<std::string> data_memory, std::vector<int> data_address) {
+    void operation_lw_or_lb(std::vector<std::bitset<32>>& my_register, std::vector<std::string>& data_memory, std::vector<int>& data_address) {
         int rs_value = int(my_register[rs].to_ullong());
         int address = rs_value + immediate_or_address;
         int address_index = find_address_index_for_branch(data_address, address);
@@ -249,7 +249,7 @@ public:
         }
     }
 
-    void operation_sw_or_sb(std::vector<std::bitset<32>> my_register, std::vector<std::string> data_memory, std::vector<int> data_address) {
+    void operation_sw_or_sb(std::vector<std::bitset<32>>& my_register, std::vector<std::string>& data_memory, std::vector<int>& data_address) {
         int rt_value = int(my_register[rt].to_ullong());
         int rs_value = int(my_register[rs].to_ullong());
         int address = rs_value + immediate_or_address;
@@ -266,21 +266,19 @@ public:
         }
     }
 
-    std::vector<std::bitset<32>> operation(std::vector<std::bitset<32>> my_register) {
+    void operation(std::vector<std::bitset<32>>& my_register) {
         int rs_value = int(my_register[rs].to_ullong());
         int rt_value = int(my_register[rt].to_ullong());
 
         if (instruction_name == "addiu") { ///////rs와 sign-extened된 immediate의 합을 rt에 저장.
             rt_value = rs_value + immediate_or_address;
-            std::cout << "checked checked checked checked checked checked checked checked checked" << std::endl;
-            std::cout << rt_value << std::endl;
             my_register[rt] = std::bitset<32>(rt_value);
-            return my_register;
+            return;
         }
 
         if (instruction_name == "andi") {
             my_register[rt] = my_register[rs] & std::bitset<32>(immediate_or_address);
-            return my_register;
+            return;
         }
         
 
@@ -294,22 +292,22 @@ public:
                     my_register[rt][idx] = imm_16bit[idx - 16];
                 }
             }
-            return my_register;
+            return;
         }
 
         if (instruction_name == "ori") {
             my_register[rt] = my_register[rs] | std::bitset<32> (immediate_or_address);
-            return my_register;
+            return;
         }
 
         if (instruction_name == "sltiu") {                       ///rs가 sign_extened imm보다 작으면 rt 1, 아니면 0
             if (rs < immediate_or_address) {
                 my_register[rt] = 1;
-                return my_register;
+                return;
             }
             else {
                 my_register[rt] = 0;
-                return my_register;
+                return;
             }
         }
     }
@@ -516,7 +514,6 @@ int main() {
                 for (auto i = I.begin(); i != I.end(); i++) {
                     std::vector<int> int_instruction = change_to_I_format_instruction(instruction_memory[instruction_memory_index]);       ///32비트 2진수 instruction을 I format 형태의 10진수 vector instruction으로 바꾸기.
                     if (i->opcode == int_instruction[0]) {
-                        std::cout << "checked checked checked checked checked checked checked checked checked" << std::endl;
                         type_checking = i->type_name;
                         i->rs = int_instruction[1];
                         i->rt = int_instruction[2];
@@ -544,7 +541,7 @@ int main() {
                             break;
                         }
                         else {
-                            my_register = i->operation(my_register);
+                            i->operation(my_register);
                             break;
                         }
                     }
