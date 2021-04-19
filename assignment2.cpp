@@ -266,7 +266,7 @@ public:
         }
     }
 
-    void operation(std::vector<std::bitset<32>> my_register) {
+    std::vector<std::bitset<32>> operation(std::vector<std::bitset<32>> my_register) {
         int rs_value = int(my_register[rs].to_ullong());
         int rt_value = int(my_register[rt].to_ullong());
 
@@ -275,13 +275,12 @@ public:
             std::cout << "checked checked checked checked checked checked checked checked checked" << std::endl;
             std::cout << rt_value << std::endl;
             my_register[rt] = std::bitset<32>(rt_value);
-            std::cout << "test" << my_register[rt].to_string() << std::endl; //////////////////////////////////////////
-            return;
+            return my_register;
         }
 
         if (instruction_name == "andi") {
             my_register[rt] = my_register[rs] & std::bitset<32>(immediate_or_address);
-            return;
+            return my_register;
         }
         
 
@@ -295,22 +294,22 @@ public:
                     my_register[rt][idx] = imm_16bit[idx - 16];
                 }
             }
-            return;
+            return my_register;
         }
 
         if (instruction_name == "ori") {
             my_register[rt] = my_register[rs] | std::bitset<32> (immediate_or_address);
-            return;
+            return my_register;
         }
 
         if (instruction_name == "sltiu") {                       ///rs가 sign_extened imm보다 작으면 rt 1, 아니면 0
             if (rs < immediate_or_address) {
                 my_register[rt] = 1;
-                return;
+                return my_register;
             }
             else {
                 my_register[rt] = 0;
-                return;
+                return my_register;
             }
         }
     }
@@ -345,6 +344,7 @@ public:
         }
 
         std::string jump_target_32bit = upper_pc_4bit + str_jump_target_28bit;
+        return jump_target_32bit;
     }
 
     J_format() {
@@ -544,7 +544,7 @@ int main() {
                             break;
                         }
                         else {
-                            i->operation(my_register);
+                            my_register = i->operation(my_register);
                             break;
                         }
                     }
@@ -571,10 +571,9 @@ int main() {
             if(exist_d == true){
                 std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_index]) << std::endl;
                 std::cout << "Register:" << std::endl;
-                std::cout << my_register[2].to_string() << std::endl;
-                /*for(int n = 0; n < my_register.size(); n++){
-                    std::cout << "R" << n << ":" << my_register[n].to_string() << std::endl;
-                }*/
+                for(int n = 0; n < my_register.size(); n++){
+                    std::cout << "R" << n << ": 0x" << int_to_hex(binary_to_int(my_register[n].to_string())) << std::endl;
+                }
 
                 if(exist_m == true){
 
