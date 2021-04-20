@@ -487,7 +487,7 @@ int main()
         command_parsing.push_back(command);
     }
 
-    if (command_parsing[0] == "./my_mips.cpp")
+    if (command_parsing[0] == "./runfile")
     {
         std::cout << "program_start" << std::endl; //// test code
         bool exist_m = false;
@@ -525,6 +525,7 @@ int main()
         std::vector<int> byte_instruction_address(4);
         byte_instruction_address[0] = start_instruction_address;
         std::vector<std::vector<int>> instruction_address;
+        instruction_address.push_back(byte_instruction_address); ////////////////asdfasdfasdf
 
         int start_data_address = 0x10000000; ///data영역 시작주소
         int end_data_address;
@@ -545,10 +546,12 @@ int main()
         std::string one_byte_instruction;
         std::vector<std::string> four_byte_instruction;
         std::vector<std::vector<std::string>> instruction_memory;
+        instruction_memory.clear();
 
         std::string one_byte_data;
         std::vector<std::string> four_byte_data;
         std::vector<std::vector<std::string>> data_memory;
+        data_memory.clear();
 
         int txt_section_size;
         int data_section_size;
@@ -566,7 +569,7 @@ int main()
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //// 바이너리 파일 읽어오기
             while (!reading.eof())
-            {
+            {   
                 getline(reading, hex_num);
                 const char* transform = hex_num.c_str();
                 decimal_num = strtol(transform, NULL, 16); ////16진수 10진수로 바꾸기
@@ -606,9 +609,9 @@ int main()
 
                         if (line_num == 2)
                         {
-                            byte_instruction_address[1] = byte_instruction_address[0] + 1;
-                            byte_instruction_address[2] = byte_instruction_address[0] + 2;
-                            byte_instruction_address[3] = byte_instruction_address[0] + 3;
+                            instruction_address[0][1] = byte_instruction_address[0] + 1;
+                            instruction_address[0][2] = byte_instruction_address[0] + 2;
+                            instruction_address[0][3] = byte_instruction_address[0] + 3;
                         }
                         if (line_num > 2)
                         {
@@ -616,8 +619,8 @@ int main()
                             {
                                 byte_instruction_address.push_back(start_instruction_address + 4 * (line_num - 2) + i);
                             }
+                            instruction_address.push_back(byte_instruction_address); /////pc 설정 (10진수)
                         }
-                        instruction_address.push_back(byte_instruction_address); /////pc 설정 (10진수)
                         byte_instruction_address.clear();
                         line_num++;
                         continue;
@@ -793,6 +796,8 @@ int main()
 
             if (exist_d == true)
             {
+                std::cout << "Current register value: " << std::endl;
+                std::cout << "---------------------------------------------------------------" << std::endl;
                 std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
                 std::cout << "Register:" << std::endl;
                 for (int n = 0; n < my_register.size(); n++)
@@ -811,6 +816,8 @@ int main()
         }
         if (exist_d == false)
         {
+            std::cout << "Current register value: " << std::endl;
+            std::cout << "---------------------------------------------------------------" << std::endl;
             std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
             std::cout << "Register:" << std::endl;
             for (int n = 0; n < my_register.size(); n++)
@@ -823,7 +830,6 @@ int main()
         if (exist_m == true)
         {
             std::string address_range = command_parsing[memory_n];
-            address_range.pop_back();
             int token_index;
             for (int n = 0; n < address_range.size(); n++)
             {
@@ -848,17 +854,21 @@ int main()
 
             const char* second = second_address.c_str();
             int d_second_address = strtol(second, NULL, 16);
-            for (int n = d_first_address; n < d_second_address + 1; n++)
-            {
+            std::cout << "Memory content [0x" << int_to_hex(d_first_address) << "..0x" << int_to_hex(d_second_address) << "]" << std::endl;
+            std::cout << "Current register value: " << std::endl;
+            std::cout << "---------------------------------------------------------------" << std::endl;
+            for (int n = d_first_address; n < d_second_address + 1; n +=4)
+            {   
+                std::cout << "0x" << int_to_hex(n) << ":";
                 if (n >= start_data_address && n <= end_data_address)
                 {
                     std::vector<int> index = find_address_index_for_branch(data_address, n);
-                    std::cout << data_address[index[0]][index[1]] << std::endl;
+                    std::cout << data_memory[index[0]][index[1]] << std::endl;
                 }
                 if (n >= start_instruction_address && n <= end_instruction_address)
                 {
                     std::vector<int> index = find_address_index_for_branch(instruction_address, n);
-                    std::cout << instruction_address[index[0]][index[1]] << std::endl;
+                    std::cout << instruction_memory[index[0]][index[1]] << std::endl;
                 }
                 else
                 {
