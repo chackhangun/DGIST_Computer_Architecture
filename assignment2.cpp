@@ -320,12 +320,17 @@ public:
 
     void operation_lw_or_lb(std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address)
     {
-        int rs_value = int(my_register[rs].to_ullong());
+        int rs_value = int(my_register[rs].to_ulong());
         int address = rs_value + immediate_or_address;
         std::vector<int> address_index = find_address_index_for_branch(data_address, address);
         if (instruction_name == "lw")
         {
-            my_register[rt] = change_to_bitset(data_memory[address_index[0]][address_index[1]]); ////std::vector<std::bitset<32> my_register[0] = 15; 하면 2진수로 들어가는가 체크체크하기
+            std::string word;
+            for (int a = 0; a < 4; a++) {
+                
+                word += data_memory[address_index[0]][a];
+            }
+            my_register[rt] = change_to_bitset(word); ////std::vector<std::bitset<32> my_register[0] = 15; 하면 2진수로 들어가는가 체크체크하기
         }
         else
         {
@@ -338,7 +343,6 @@ public:
             my_register[rt] = change_to_bitset(num_extension);
         }
     } //checked
-
     void operation_sw_or_sb(std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address)
     {
         int rt_value = int32_t(my_register[rt].to_ulong());
@@ -347,7 +351,14 @@ public:
         std::vector<int> address_index = find_address_index_for_branch(data_address, address);
         if (instruction_name == "sw")
         {
-            data_memory[address_index[0]][address_index[1]] = std::bitset<32>(rt_value).to_string();
+            std::string a = std::bitset<32>(rt_value).to_string();
+            std::vector<std::string> temp;
+            for (int num = 0; num < 4; num++) {
+                for (int num2 = 0 + num * 8; num2 < 8 + num * 8; num2++) {
+                    temp[num][num2] = a[num2];
+                }
+            }
+            data_memory[address_index[0]] = temp;
         }
         else
         {
@@ -356,10 +367,9 @@ public:
             {
                 one_byte_data.push_back(data_memory[address_index[0]][address_index[1]][n]);
             }
-            data_memory[address_index[0]][address_index[1]] = value_sign_extension(one_byte_data, 24);
+            data_memory[address_index[0]][address_index[1]] = one_byte_data;
         }
     }
-
     void operation(std::vector<std::bitset<32>>& my_register)
     {
         int rs_value = int(my_register[rs].to_ullong());
@@ -563,16 +573,16 @@ int main()
             int line_num = 0;                           ///object파일의 몇번째 줄인지 확인
             int end_line_instruction_memory_plus_1 = 0; ////instruction의 끝 줄 확인
             std::string hex_num;                        ////getline을 사용
-            int decimal_num;
+            __int64 decimal_num;
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //// 바이너리 파일 읽어오기
             while (!reading.eof())
-            {   
+            {
                 getline(reading, hex_num);
                 const char* transform = hex_num.c_str();
-                decimal_num = strtol(transform, NULL, 16); ////16진수 10진수로 바꾸기
+                decimal_num = strtoul(transform, NULL, 16); ////16진수 10진수로 바꾸기
                 if (line_num == 0)
                 { ////text section size 설정
                     txt_section_size = decimal_num;
@@ -626,8 +636,15 @@ int main()
                         continue;
                     }
 
+
                     else
                     {
+                        if (line_num == end_line_instruction_memory_plus_1) {
+                            int end_address = (instruction_address.back())[3];
+                            std::vector<int> end = { end_address + 1,end_address + 2, end_address + 3, end_address + 4 };
+                            instruction_address.push_back(end);
+                        }
+
                         if (line_num < end_line_instruction_memory_plus_1 + data_section_size / 4)
                         {
                             for (int i = 0; i < 4; i++)
@@ -669,9 +686,9 @@ int main()
         int data_memory_big_index = 0;
         int data_memory_small_index = 0;
 
+    Label:
         while (instruction_memory_big_index < instruction_memory.size())
         {
-        Label:
             bool branch_switch = false;
 
             if (exist_n == true)
@@ -686,11 +703,12 @@ int main()
             if (type_checking == "none")
             {
                 ////R format일 때 동작
+                std::vector<int> int_instruction = change_to_R_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 r format 형태의 10진수 vector instruction으로 바꾸기.
                 for (auto r = R.begin(); r != R.end(); r++)
                 {
-                    std::vector<int> int_instruction = change_to_R_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 r format 형태의 10진수 vector instruction으로 바꾸기.
                     if ((r->opcode) == int_instruction[0] && (r->funct) == int_instruction[5])
                     {
+                        std::cout << r->instruction_name << std::endl;
                         type_checking = r->type_name;
                         r->rs = int_instruction[1];
                         r->rt = int_instruction[2];
@@ -708,19 +726,25 @@ int main()
                         else
                         {
                             r->operation(my_register);
+
+                            instruction_memory_big_index++;
+                            instruction_memory_small_index = 0;
                             break;
                         }
+
+                        
                     }
                 }
             } ///checked
 
             if (type_checking == "none")
             {
+                std::vector<int> int_instruction = change_to_I_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 I format 형태의 10진수 vector instruction으로 바꾸기.
                 for (auto i = I.begin(); i != I.end(); i++)
                 {
-                    std::vector<int> int_instruction = change_to_I_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 I format 형태의 10진수 vector instruction으로 바꾸기.
                     if (i->opcode == int_instruction[0])
                     {
+                        std::cout << i->instruction_name << std::endl;
                         type_checking = i->type_name;
                         i->rs = int_instruction[1];
                         i->rt = int_instruction[2];
@@ -745,41 +769,57 @@ int main()
                                 instruction_memory_big_index = new_instruction_memory_idx[0];
                                 instruction_memory_small_index = new_instruction_memory_idx[1];
                             }
+                            else {
+                                instruction_memory_big_index++;
+                                instruction_memory_small_index = 0;
+                            }
                             break;
                         } ///checked
                         if (i->instruction_name == "lw" | i->instruction_name == "lb")
                         {
                             i->operation_lw_or_lb(my_register, data_memory, data_address);
+
+                            instruction_memory_big_index++;
+                            instruction_memory_small_index = 0;
                             break;
                         } ///checked
                         if (i->instruction_name == "sw" | i->instruction_name == "sb")
                         {
                             i->operation_sw_or_sb(my_register, data_memory, data_address);
+
+                            instruction_memory_big_index++;
+                            instruction_memory_small_index = 0;
                             break;
                         }
                         else
                         {
                             i->operation(my_register);
+
+                            instruction_memory_big_index++;
+                            instruction_memory_small_index = 0;
                             break;
                         } //checked
+
+                        
                     }
                 }
             }
 
             if (type_checking == "none")
             {
+                std::vector<int> int_instruction = change_to_J_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 J format 형태의 10진수 vector instruction으로 바꾸기.
                 for (auto j = J.begin(); j != J.end(); j++)
                 {
-                    std::vector<int> int_instruction = change_to_J_format_instruction(instruction_memory[instruction_memory_big_index]); ///32비트 2진수 instruction을 J format 형태의 10진수 vector instruction으로 바꾸기.
                     if (j->opcode == int_instruction[0])
                     {
+                        std::cout << j->instruction_name << std::endl;
                         type_checking = j->type_name;
                         j->jump_target = int_instruction[1];
                         if (j->instruction_name == "jal")
                         {
                             std::vector<int> new_idx = { instruction_memory_big_index, instruction_memory_small_index }; ///돌아올 pc를 저장해야한다.
                             //plus_big_small_index(new_idx);
-                            my_register[31] = instruction_address[new_idx[0]][new_idx[1]]; ///ra에 다음 실행할 ins의 주소를 저장.
+                            my_register[31] = instruction_address[new_idx[0]+1][0]; ///ra에 다음 실행할 ins의 주소를 저장. [new_idx[1]
                         }
                         std::string jump_target_32bit = j->j_operation(instruction_address, instruction_memory_big_index, instruction_memory_small_index); ////28비트의 jump_target과 instruction_or_data_address[instruction_memory_index]의 상위 4비트랑 합침
                         std::bitset<32> bitset_jump_target_32bit = change_to_bitset(jump_target_32bit);
@@ -791,6 +831,8 @@ int main()
                         instruction_memory_small_index = next_idx[1];
                         break;
                     }
+
+                    
                 }
             } /// checked
 
@@ -810,10 +852,8 @@ int main()
             {
                 goto Label;
             }
-
-            instruction_memory_big_index++;
-            instruction_memory_small_index = 0;
         }
+
         if (exist_d == false)
         {
             std::cout << "Current register value: " << std::endl;
@@ -854,26 +894,33 @@ int main()
 
             const char* second = second_address.c_str();
             int d_second_address = strtol(second, NULL, 16);
-            std::cout << "Memory content [0x" << int_to_hex(d_first_address) << "..0x" << int_to_hex(d_second_address) << "]" << std::endl;
+
+            std::cout << "Memory content ["<< first_address << ".." << second_address << "]" << std::endl;
             std::cout << "Current register value: " << std::endl;
             std::cout << "---------------------------------------------------------------" << std::endl;
-            for (int n = d_first_address; n < d_second_address + 1; n +=4)
-            {   
+            for (int n = d_first_address; n < d_second_address + 1; n += 4)
+            {
                 std::cout << "0x" << int_to_hex(n) << ":";
                 if (n >= start_data_address && n <= end_data_address)
                 {
                     std::vector<int> index = find_address_index_for_branch(data_address, n);
-                    std::cout << data_memory[index[0]][index[1]] << std::endl;
+                    std::vector<std::string> temp = data_memory[index[0]];
+                    std::cout << temp[0]+temp[1]+temp[2]+temp[3] << std::endl;
                 }
-                if (n >= start_instruction_address && n <= end_instruction_address)
+                else 
                 {
-                    std::vector<int> index = find_address_index_for_branch(instruction_address, n);
-                    std::cout << instruction_memory[index[0]][index[1]] << std::endl;
+                    if (n >= start_instruction_address && n <= end_instruction_address)
+                    {
+                        std::vector<int> index = find_address_index_for_branch(instruction_address, n);
+                        std::vector<std::string> temp = instruction_memory[index[0]];
+                        std::cout << temp[0] + temp[1] + temp[2] + temp[3] << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "0x0" << std::endl;
+                    }
                 }
-                else
-                {
-                    std::cout << "0x0" << std::endl;
-                }
+
             }
         }
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
