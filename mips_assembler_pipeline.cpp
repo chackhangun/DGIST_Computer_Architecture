@@ -2,7 +2,7 @@
 #include <bitset>
 #include <string>
 #include <vector>
-#include <map>
+#include <deque>
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
@@ -245,11 +245,11 @@ public:
             return std::bitset<32>(rd_value);
         } ///checked
 
-        if (instruction_name == "jr"){//////////////////////////////////////////rs로 분기하는것 좀더 생각필요
+        if (instruction_name == "jr") {//////////////////////////////////////////rs로 분기하는것 좀더 생각필요
             return my_register[rs];
         }
     }
-    
+
     std::vector<int> operation_jr(std::vector<std::bitset<32>> my_register, std::vector<std::vector<int>> instruction_address)
     { ///pc_num에서 rs안에 들어있는 주소와 같은 값의 index를 구한다.
 
@@ -258,7 +258,7 @@ public:
         std::vector<int> index = find_address_index_for_branch(instruction_address, decimal_num);
         return index;
     } ///checked 만약 찾지못하면??
-    
+
 
     R_format()
     {
@@ -316,7 +316,7 @@ public:
         {
             std::string word;
             for (int a = 0; a < 4; a++) {
-                
+
                 word += data_memory[address_index[0]][a];
             }
             my_register[rt] = change_to_bitset(word); ////std::vector<std::bitset<32> my_register[0] = 15; 하면 2진수로 들어가는가 체크체크하기
@@ -488,7 +488,6 @@ public:
 std::vector<std::string> IF_STAGE(std::vector<std::vector<std::string>> instruction_memory, int line_index) {
     return instruction_memory[line_index];
 }
-
 std::vector<std::string, std::string> ID_STAGE(std::vector<std::string> string_instruction_32bit, std::vector<R_format>& R, std::vector<I_format>& I, std::vector<J_format>& J) {
     std::vector<int> int_instruction;
     std::vector<std::string, std::string> type_with_name = {"none","none"};
@@ -505,7 +504,6 @@ std::vector<std::string, std::string> ID_STAGE(std::vector<std::string> string_i
             break;
         }
     }
-
     int_instruction = change_to_I_format_instruction(string_instruction_32bit);
     for (auto i = I.begin(); i != I.end(); i++) {
         if (i->opcode == int_instruction[0]) {
@@ -518,7 +516,6 @@ std::vector<std::string, std::string> ID_STAGE(std::vector<std::string> string_i
             break;
         }
     }
-
     int_instruction = change_to_J_format_instruction(string_instruction_32bit);
     for (auto j = J.begin(); j != J.end(); j++) {
         if (j->opcode == int_instruction[0]) {
@@ -531,7 +528,6 @@ std::vector<std::string, std::string> ID_STAGE(std::vector<std::string> string_i
     }
     return type_with_name;
 } // insturction 이름 리턴
-
 std::bitset<32> EX_STAGE(std::vector<std::bitset<32>>& my_register, std::vector<std::string,std::string> type_with_name, std::vector<R_format>& R, std::vector<I_format>& I, std::vector<J_format>& J) {
     ////EX STAGE 앞에 들어오게 하고 EX_STAGE라는 함수는 계산만 하도록 하자. ---- > INSTRUCTION에 대한 정보 LIKE ITER. ITER를 찾으면 STATE_REG에 넣으면됨.
     std::string type_checking = type_with_name[0];
@@ -539,7 +535,6 @@ std::bitset<32> EX_STAGE(std::vector<std::bitset<32>>& my_register, std::vector<
     std::vector<R_format>::iterator r_pointer;
     std::vector<I_format>::iterator i_pointer;
     std::vector<J_format>::iterator j_pointer;
-
     if(type_checking == "R"){
         for (auto r = R.begin(); r != R.end(); r++) {
             if(r->instruction_name == ins_name){
@@ -566,11 +561,10 @@ std::bitset<32> EX_STAGE(std::vector<std::bitset<32>>& my_register, std::vector<
             }
         }
     }
-    
+
     if(type_checking == "R"){
         return r_pointer->operation(my_register); ////32비트 bitset으로 된 결과값 리턴. + jr일때 고려해주어야함.
     }
-
     if(type_checking == "I"){ /// 32비트 bitset 주소 리턴
         if(ins_name == "lw" || ins_name == "lb"){
             int32_t rs_value = int32_t(my_register[i_pointer->rs].to_ullong());
@@ -585,7 +579,6 @@ std::bitset<32> EX_STAGE(std::vector<std::bitset<32>>& my_register, std::vector<
         }
     }
 }
-
 std::string MEM_STAGE(std::string ins_name, std::bitset<32> result_exstage, std::vector<int> int_instruction, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address){
     int32_t address = int32_t(result_exstage.to_ullong());
     std::vector<int> address_index = find_address_index_for_branch(data_address, address);
@@ -607,7 +600,7 @@ std::string MEM_STAGE(std::string ins_name, std::bitset<32> result_exstage, std:
         return num_extension;
     }
     //////////////////////////////////////////////////////// sw, sb는 mem stage에서 종료///////////////////////////////////////////////////////////////////
-    if(ins_name == "sw"){ 
+    if(ins_name == "sw"){
         std::string a = std::bitset<32>(int_instruction[2]).to_string();
         std::string temp;
         std::vector<std::string> cont;
@@ -631,7 +624,6 @@ std::string MEM_STAGE(std::string ins_name, std::bitset<32> result_exstage, std:
         return "sb complete";
     }
 }
-
 void WB_STAGE(std::string ins_type, std::string ins_name, std::bitset<32> ex_result, std::string mem_result, std::vector<int> int_instruction, std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory){
     if(ins_type == "R"){
         int rd = int_instruction[3];
@@ -660,24 +652,39 @@ void WB_STAGE(std::string ins_type, std::string ins_name, std::bitset<32> ex_res
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class single_cycle_path{
-    public:
+class single_cycle_path {
+public:
     std::vector<std::string> str_instruction;
     R_format* r_pointer = nullptr;
     I_format* i_pointer = nullptr;
     J_format* j_pointer = nullptr;
     std::string instruction_type = "none";
-    std::string instruction_name = "none"; 
-    std::vector<int> int_instruction = {0,};
-    int pc;
+    std::string instruction_name = "none";
+    std::vector<int> int_instruction = { 0, };
+    int pc = 0;
 
-    void if_stage(){
+    single_cycle_path() {
+        str_instruction = { "none" };
+    }
+
+    single_cycle_path(std::vector<std::string> one_instruction, int pc_register) {
+        str_instruction = one_instruction;
+        pc = pc_register;
+    }
+
+    void if_stage() {
+        if (pc == 0) {
+            return;
+        }
         std::cout << "fetching stage complete" << std::endl;
         std::cout << "instruction is " << str_instruction[0] + str_instruction[1] + str_instruction[2] + str_instruction[3] << std::endl;
     }
 
-    void id_stage(std::vector<R_format> R,  std::vector<I_format> I,  std::vector<J_format> J){
-        if(instruction_type == "none"){
+    void id_stage(std::vector<R_format> R, std::vector<I_format> I, std::vector<J_format> J) {
+        if (pc == 0) {
+            return;
+        }
+        if (instruction_type == "none") {
             int_instruction = change_to_R_format_instruction(str_instruction);
             for (auto r = R.begin(); r != R.end(); r++) {
                 if ((r->opcode) == int_instruction[0] && (r->funct) == int_instruction[5]) {
@@ -693,7 +700,7 @@ class single_cycle_path{
                 }
             }
         }
-        if(instruction_type == "none"){
+        if (instruction_type == "none") {
             int_instruction = change_to_I_format_instruction(str_instruction);
             for (auto i = I.begin(); i != I.end(); i++) {
                 if (i->opcode == int_instruction[0]) {
@@ -708,7 +715,7 @@ class single_cycle_path{
                 }
             }
         }
-        if(instruction_type == "none"){
+        if (instruction_type == "none") {
             int_instruction = change_to_J_format_instruction(str_instruction);
             for (auto j = J.begin(); j != J.end(); j++) {
                 if (j->opcode == int_instruction[0]) {
@@ -719,7 +726,7 @@ class single_cycle_path{
                     j_pointer = &(*j);
                     break;
                 }
-            }  
+            }
         }
         std::cout << "---------------------------------Now state---------------------------------" << std::endl;
         std::cout << "str_instruction = " << str_instruction[0] + str_instruction[1] + str_instruction[2] + str_instruction[3] << std::endl;
@@ -729,39 +736,50 @@ class single_cycle_path{
         std::cout << "instruction_type = " << instruction_type << std::endl;
         std::cout << "instruction_name = " << instruction_name << std::endl;
         std::cout << "int_instruction = ";
-        for(int i = 0; i < int_instruction.size(); i++){
+        for (int i = 0; i < int_instruction.size(); i++) {
             std::cout << int_instruction[i] << ",";
         }
         std::cout << std::endl;
         std::cout << "pc = " << pc << std::endl;
     }
 
-    std::bitset<32> ex_stage(std::vector<std::bitset<32>>& my_register){
-        if(instruction_type == "R"){
-            return r_pointer->operation(my_register);
+    std::bitset<32> ex_stage(std::vector<std::bitset<32>>& my_register) {
+        if (pc == 0) {
+            return 0;
         }
-        if(instruction_type == "I"){
-            if(instruction_name == "lw" || instruction_name == "lb"){
+        if (instruction_type == "R") {
+            return r_pointer->operation(my_register); ///jr 처리해주기
+        }
+        if (instruction_type == "I") {
+            if (instruction_name == "lw" || instruction_name == "lb") {
                 int32_t rs_value = int32_t(my_register[i_pointer->rs].to_ullong());
                 int32_t address = rs_value + (i_pointer->immediate_or_address);
                 std::cout << instruction_name << "'s ex_stage complete" << std::endl;
                 return std::bitset<32>(address);
             }
-            if(instruction_name == "sw" || instruction_name == "sb"){
+            if (instruction_name == "sw" || instruction_name == "sb") {
                 int32_t rt_value = int32_t(my_register[i_pointer->rt].to_ullong());
                 int32_t rs_value = int32_t(my_register[i_pointer->rs].to_ullong());
                 int32_t address = rs_value + (i_pointer->immediate_or_address);
                 std::cout << instruction_name << "'s ex_stage complete" << std::endl;
                 return std::bitset<32>(address);
             }
+
+            if (instruction_name == "beq") {
+
+            }
         }
     }
 
-    std::string mem_stage(std::bitset<32> result_ex_stage,std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address){
+    std::string mem_stage(std::bitset<32> result_ex_stage, std::vector<std::vector<std::string>>& data_memory, std::vector<std::vector<int>>& data_address) {
+        if (pc == 0) {
+            return "none";
+        }
+
         int32_t address = int32_t(result_ex_stage.to_ullong());
         std::vector<int> address_index = find_address_index_for_branch(data_address, address);
         //////////////////////////////////////////////////////// lw, lb는 wb stage에서 register에 써줘야함////////////////////////////////////////////////////
-        if(instruction_name == "lw"){
+        if (instruction_name == "lw") {
             std::string word;
             for (int a = 0; a < 4; a++) {
                 word += data_memory[address_index[0]][a];
@@ -770,7 +788,7 @@ class single_cycle_path{
             std::cout << "the index of address is " << address_index[0] << "," << address_index[1] << std::endl;
             return word; ///////////  string으로 된 32bit data memory의 주소 리턴.
         }
-        if(instruction_name == "lb"){
+        if (instruction_name == "lb") {
             std::string one_byte_data;
             for (int n = 0; n < 8; n++)
             {
@@ -783,7 +801,7 @@ class single_cycle_path{
             return num_extension;
         }
         //////////////////////////////////////////////////////// sw, sb는 mem stage에서 종료///////////////////////////////////////////////////////////////////
-        if(instruction_name == "sw"){
+        if (instruction_name == "sw") {
             std::string a = std::bitset<32>(int_instruction[2]).to_string();
             std::string temp;
             std::vector<std::string> cont;
@@ -797,7 +815,7 @@ class single_cycle_path{
             data_memory[address_index[0]] = cont;
             return "sw complete";
         }
-        if(instruction_name == "sb"){
+        if (instruction_name == "sb") {
             std::string one_byte_data;
             for (int n = 0; n < 8; n++)
             {
@@ -808,29 +826,43 @@ class single_cycle_path{
         }
     }
 
-    void wb_stage(std::bitset<32> result_ex_stage, std::string result_mem_stage, std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory){
-        if(instruction_type == "R"){
+    void wb_stage(std::bitset<32> result_ex_stage, std::string result_mem_stage, std::vector<std::bitset<32>>& my_register, std::vector<std::vector<std::string>>& data_memory) {
+        if (pc == 0) {
+            return;
+        }
+
+        if (instruction_type == "R") {
             int rd = int_instruction[3];
             my_register[rd] = result_ex_stage; // e
             std::cout << instruction_name << "'s wb stage is completed" << std::endl;
             return;
         }
-        if(instruction_type == "I"){
+        if (instruction_type == "I") {
             int rt = int_instruction[2];
-            if(instruction_name == "lw" || instruction_name == "lb"){
+            if (instruction_name == "lw" || instruction_name == "lb") {
                 my_register[rt] = change_to_bitset(result_mem_stage);
                 std::cout << instruction_name << "'s lw or lb stage is completed" << std::endl;
                 return;
             }
-        }        
+        }
     }
 };
 
-
-
-
-
-
+void mips_stage_pipeline(std::deque<single_cycle_path>& pipeline) {
+    if (pipeline.size() > 4) {
+        pipeline[4].wb_stage(); //state register 구현해야함.
+    }
+    if (pipeline.size() > 3) {
+        pipeline[3].mem_stage();
+    }
+    if (pipeline.size() > 2) {
+        pipeline[2].ex_stage();
+    }
+    if (pipeline.size() > 1) {
+        pipeline[1].id_stage();
+    }
+    pipeline[0].if_stage();
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -894,11 +926,11 @@ int main()
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        
-        
+
+
         //////////////////////////////////////////////////////0-31 reg 초기화 및 pc 설정///////////////////////////////////////////////////////////////
 
-        std::vector<std::bitset<32>> my_register(32, 0); 
+        std::vector<std::bitset<32>> my_register(32, 0);
 
         int start_instruction_address = 0x400000; ///txt 영역 시작주소 (pc)
         int end_instruction_address;
@@ -1067,7 +1099,55 @@ int main()
         int data_memory_big_index = 0;
         int data_memory_small_index = 0;
 
-    
+
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////.///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////pipeline test 코드///////////////////////////////////////////////////////////////////
+        std::deque<single_cycle_path> pipeline;
+
+        while (instruction_address[instruction_memory_big_index][0] <= instruction_address.back()[0]) {
+            if (instruction_address[instruction_memory_big_index][0] == instruction_address.back()[0]) {
+                if (pipeline.size() == 5) {
+                    pipeline.pop_back();
+                }
+                pipeline.push_front(single_cycle_path(instruction_memory[instruction_memory_big_index], instruction_address[instruction_memory_big_index][0]));
+                mips_stage_pipeline(pipeline);
+            }
+
+            else {///  instruction_address[instruction_memory_big_index][0] == instruction_address.back()[0] ///같은 순간부터 stage 4번 더 진행해주어야함.
+                for (int n = 0; n < 4; n++) {
+                    pipeline.pop_back();
+                    pipeline.push_front(single_cycle_path()); //기본 컨스트럭터를 넣는다. default construct는 아무 operation이 일어나지않도록 설정
+                    mips_stage_pipeline(pipeline);
+                }
+            } 
+        }
+
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////.///////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
     Label:
         while (instruction_memory_big_index < instruction_memory.size())
         {
@@ -1114,7 +1194,7 @@ int main()
                             break;
                         }
 
-                        
+
                     }
                 }
             } ///checked
@@ -1186,7 +1266,7 @@ int main()
                             break;
                         } //checked
 
-                        
+
                     }
                 }
             }
@@ -1205,7 +1285,7 @@ int main()
                         {
                             std::vector<int> new_idx = { instruction_memory_big_index, instruction_memory_small_index }; ///돌아올 pc를 저장해야한다.
                             //plus_big_small_index(new_idx);
-                            my_register[31] = instruction_address[new_idx[0]+1][0]; ///ra에 다음 실행할 ins의 주소를 저장. [new_idx[1]
+                            my_register[31] = instruction_address[new_idx[0] + 1][0]; ///ra에 다음 실행할 ins의 주소를 저장. [new_idx[1]
                         }
                         std::string jump_target_32bit = j->j_operation(instruction_address, instruction_memory_big_index, instruction_memory_small_index); ////28비트의 jump_target과 instruction_or_data_address[instruction_memory_index]의 상위 4비트랑 합침
                         std::bitset<32> bitset_jump_target_32bit = change_to_bitset(jump_target_32bit);
@@ -1218,7 +1298,7 @@ int main()
                         break;
                     }
 
-                    
+
                 }
             } /// checked
 
@@ -1281,7 +1361,7 @@ int main()
             const char* second = second_address.c_str();
             int d_second_address = strtol(second, NULL, 16);
 
-            std::cout << "Memory content ["<< first_address << ".." << second_address << "]" << std::endl;
+            std::cout << "Memory content [" << first_address << ".." << second_address << "]" << std::endl;
             std::cout << "Current register value: " << std::endl;
             std::cout << "---------------------------------------------------------------" << std::endl;
             for (int n = d_first_address; n < d_second_address + 1; n += 4)
@@ -1291,9 +1371,9 @@ int main()
                 {
                     std::vector<int> index = find_address_index_for_branch(data_address, n);
                     std::vector<std::string> temp = data_memory[index[0]];
-                    std::cout << temp[0]+temp[1]+temp[2]+temp[3] << std::endl;
+                    std::cout << temp[0] + temp[1] + temp[2] + temp[3] << std::endl;
                 }
-                else 
+                else
                 {
                     if (n >= start_instruction_address && n <= end_instruction_address)
                     {
