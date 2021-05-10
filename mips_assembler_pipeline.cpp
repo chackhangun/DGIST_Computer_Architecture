@@ -497,7 +497,8 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class single_cycle_path {
+/*
+class Single_cycle_path {
 public:
     std::vector<std::string> str_instruction;
     R_format* r_pointer = nullptr;
@@ -510,22 +511,26 @@ public:
     int small_index = -1;
     int pc = 0;
 
-    single_cycle_path() {
+    Single_cycle_path() {
         str_instruction = { "none" };
     }
 
-    single_cycle_path(std::vector<std::string> one_instruction, std::vector<int> index, int pc_num) {
+    Single_cycle_path(std::vector<std::string> one_instruction, std::vector<int*> index, int pc_num) {
         str_instruction = one_instruction;
-        big_index = index[0];
-        small_index = index[1];
+        big_index = *index[0];
+        small_index = *index[1];
         pc = pc_num;
-
+        std::cout << "Single_cycle_path 인스턴스 생성" << std::endl;
+        std::cout << "이 instruction의 big_index = " << big_index << std::endl;
+        std::cout << "이 instruction의 small_index = " << small_index << std::endl;
     }
 
-    void if_stage() {
+    void if_stage(std::vector<int*>& index) {
         if (pc == 0) {
             return;
         }
+        *index[0] ++; ///////////////////pc+4해준것
+        *index[1] = 0;
         std::cout << "fetching stage complete" << std::endl;
         std::cout << "instruction is " << str_instruction[0] + str_instruction[1] + str_instruction[2] + str_instruction[3] << std::endl;
     }
@@ -696,22 +701,8 @@ public:
         }
     }
 };
+*/
 
-void mips_stage_pipeline(std::deque<single_cycle_path>& pipeline) {
-    if (pipeline.size() > 4) {
-        pipeline[4].wb_stage(); //state register 구현해야함.
-    }
-    if (pipeline.size() > 3) {
-        pipeline[3].mem_stage();
-    }
-    if (pipeline.size() > 2) {
-        pipeline[2].ex_stage();
-    }
-    if (pipeline.size() > 1) {
-        pipeline[1].id_stage();
-    }
-    pipeline[0].if_stage();
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -947,40 +938,370 @@ int main()
         int data_memory_big_index = 0;
         int data_memory_small_index = 0;
 
+        std::vector<int*> index = {&instruction_memory_big_index, &instruction_memory_small_index};
 
-
-
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////.///////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////pipeline test 코드///////////////////////////////////////////////////////////////////
-        std::deque<single_cycle_path> pipeline;
-        std::vector<int> index = {data_memory_big_index, data_memory_small_index};
+
+
+        /* 클래스로 구현 가능*/
+
+        //////////////////////////////////////////////////////////////////////////// IF/ID 상태레지스터 ///////////////////////////////////
+        std::vector<std::string> string_instruction = {"none",}; 
+        int IF_pc = 0;
+        std::vector<int> IF_index = {-1,-1};
+
+        int IF_ID_pc = 0;  
+        std::vector<int> IF_ID_index = {-1,-1};   
+        //////////////////////////////////////////////////////////////////////////// ID STAGE 레지스터, ID/EX 상태레지스터 ///////////////////////////////////
+        std::string ID_instruction_name = "none";
+        std::string ID_instruction_type = "none";
+        R_format* ID_r_format = nullptr;
+        I_format* ID_i_format = nullptr;
+        J_format* ID_j_format = nullptr;
+        bool ID_register_write = false;
+        int ID_rs = -1;
+        int ID_rt = -1;
+        int ID_imm = 0;
+        int ID_rd = -1;
+        int ID_shamt = 0;
+
+        int ID_EX_pc = 0; 
+        std::vector<int> ID_EX_index = {-1, -1};
+        std::string ID_EX_instruction_type = "none";
+        std::string ID_EX_instruction_name = "none";
+        R_format* ID_EX_r_formats = nullptr; //어떤 format의 인스턴스인지 확인하기 위해서
+        I_format* ID_EX_i_formats = nullptr;
+        J_format* ID_EX_j_formats = nullptr;
+        bool ID_EX_register_write = false;
+        int ID_EX_rs = -1;
+        int ID_EX_rt = -1;
+        int ID_EX_rd = -1;
+
+        //////////////////////////////////////////////////////////////////////////// EX STAGE 레지스터, EX/MEM 상태레지스터 ////////////////////////////////////////////////////
+        std::bitset<32> EX_result = 0;
+
+        std::string EX_MEM_instruction_type = "none";
+        std::string EX_MEM_instruction_name = "none";
+        int EX_MEM_pc = 0;
+        std::vector<int> EX_MEM_index = {-1,-1};
+        bool EX_MEM_register_write = false;
+        int EX_MEM_rt = -1;
+        int EX_MEM_rd = -1;
+        std::bitset<32> EX_MEM_ALU_result = 0;
+        I_format* EX_MEM_i_formats = nullptr;
+        //////////////////////////////////////////////////////////////////////////// MEM STAGE 레지스터, MEM/WB 상태레지스터////////////////////////////////////////////////////////
+        std::bitset<32> MEM_result_for_lw = 0;
+
+        int MEM_WB_pc = 0;
+        std::vector<int> MEM_WB_index {-1,-1};
+        std::string MEM_WB_instruction_name = "none";
+        std::string MEM_WB_instruction_type = "none";
+        std::bitset<32> MEM_WB_ALU_result = 0; //arithmatic인 경우 사용
+        bool MEM_WB_register_write = false;
+        int MEM_WB_rt = -1; 
+        int MEM_WB_rd = -1;       
+        std::bitset<32> MEM_WB_data = 0; //lw,lb인 경우 사용
+        
+        ////////////////////////////////////////////////////////////////////////////
+        std::deque<std::string> instruction_pipeline = {"none", "none", "none", "none", "none"};
+
 
         while (instruction_address[instruction_memory_big_index][0] <= instruction_address.back()[0]) {
-            if (instruction_address[instruction_memory_big_index][0] == instruction_address.back()[0]) {
-                if (pipeline.size() == 5) {
-                    pipeline.pop_back();
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            //DATA HAZARD 감지 해야함 RAW -> 이름 비교 or rs_rt 비교해야함
+
+            ////////////////////////////////////////////////////////////IF STAGE 시작 //////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////Fetching 단계에서는 pc+4와 instruction memory에 접근해서 instruction을 꺼내옴.////////////
+            instruction_pipeline.pop_back();
+            std::string instruction_32bit_string;
+            for(int n = 0; n < 4; n++){
+                instruction_32bit_string += instruction_memory[instruction_memory_big_index][n];             /////instruction memory에 접근 + 32bit instruction 가져옴.
+            }
+            instruction_pipeline.push_front(instruction_32bit_string);
+
+            IF_pc = instruction_address[instruction_memory_big_index][instruction_memory_small_index];
+            IF_index = {instruction_memory_big_index, instruction_memory_small_index}; 
+
+
+
+            ////////////////////////////////////////////////////////////ID STAGE 시작 //////////////////////////////////////////////////////////////////////////
+            //pipeline[1].id_stage(R,I,J);
+            if (IF_ID_pc != 0) {
+                std::vector<int> int_instruction;
+                std::string ID_stage_type_checking = "none";
+                ID_register_write = false; // 초기화 시켜주기 위해서
+
+                if (ID_stage_type_checking == "none") {
+                    int_instruction = change_to_R_format_instruction(string_instruction);
+                    for (auto r = R.begin(); r != R.end(); r++) {
+                        if ((r->opcode) == int_instruction[0] && (r->funct) == int_instruction[5]) {
+                            std::cout << r->instruction_name << std::endl; ////test////
+                            ID_rs = r->rs = int_instruction[1];
+                            ID_rt = r->rt = int_instruction[2];
+                            ID_rd = r->rd = int_instruction[3];
+                            ID_shamt = r->shamt = int_instruction[4];
+                            ID_instruction_type = (r->type_name);
+                            ID_instruction_name = (r->instruction_name);
+                            ID_r_format = &(*r);
+                            ID_i_format = nullptr;
+                            ID_j_format = nullptr;
+                            if(r->rd != -1){
+                                ID_register_write = true;
+                            }
+                            break;
+                        }
+                    }
                 }
-                pipeline.push_front(single_cycle_path(instruction_memory[instruction_memory_big_index], index, instruction_address[instruction_memory_big_index][0]));
-                mips_stage_pipeline(pipeline);
+
+                if (ID_stage_type_checking == "none") {
+                    int_instruction = change_to_I_format_instruction(string_instruction);
+                    for (auto i = I.begin(); i != I.end(); i++) {
+                        if (i->opcode == int_instruction[0]) {
+                            std::cout << i->instruction_name << std::endl; ////test////
+                            ID_rs = i->rs = int_instruction[1];
+                            ID_rt = i->rt = int_instruction[2];
+                            ID_imm = i->immediate_or_address = int_instruction[3];
+                            ID_instruction_type = (i->type_name);
+                            ID_instruction_name = (i->instruction_name);
+                            ID_r_format = nullptr;
+                            ID_i_format = &(*i);
+                            ID_j_format = nullptr;
+                            
+                            if(i->rt != -1){
+                                if(ID_instruction_name != "sw" || ID_instruction_name != "sb" ){
+                                    ID_register_write = true;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (ID_stage_type_checking == "none") {
+                    ///////////////////////////////////////////////////////j foramt은 id stage에서 종료됨///////////////////////////////////////////////////////////
+                    int_instruction = change_to_J_format_instruction(string_instruction);
+                    for (auto j = J.begin(); j != J.end(); j++) {
+                        if (j->opcode == int_instruction[0]) {
+                            std::cout << j->instruction_name << std::endl;
+                            ID_imm =j->jump_target = int_instruction[1];
+                            ID_instruction_type = (j->type_name);
+                            ID_instruction_name = (j->instruction_name);
+                            ID_r_format = nullptr;
+                            ID_i_format = nullptr;
+                            ID_j_format = &(*j);
+                            if (j->instruction_name == "jump") {
+                                j->j_operation(IF_ID_pc);
+                            }
+                            break;
+                        }
+                    }
+                }
             }
 
-            else {///  instruction_address[instruction_memory_big_index][0] == instruction_address.back()[0] ///같은 순간부터 stage 4번 더 진행해주어야함.
-                for (int n = 0; n < 4; n++) {
-                    pipeline.pop_back();
-                    pipeline.push_front(single_cycle_path()); //기본 컨스트럭터를 넣는다. default construct는 아무 operation이 일어나지않도록 설정
-                    mips_stage_pipeline(pipeline);
-                }
-            } 
-        }
 
+            ////////////////////////////////////////////////////////////EX STAGE 시작 //////////////////////////////////////////////////////////////////////////
+            if (ID_EX_pc != 0){
+                if (ID_EX_instruction_type == "R") {
+                    EX_result = ID_EX_r_formats->operation(my_register); ///jr 처리해주기
+                }
+                if (ID_EX_instruction_type == "I") {
+
+                    if (ID_EX_instruction_name == "lw" || ID_EX_instruction_name == "lb" || ID_EX_instruction_name == "sw" || ID_EX_instruction_name == "sb") {
+                        std::vector<int> new_index = ID_EX_i_formats->address_idx_cal_lw_lb_sw_sb(my_register, data_address);
+                        //EX_MEM_BRANCH_TARGET = new_index;
+                        
+                        std::cout << ID_EX_instruction_name << "'s ex_stage(calculation address) complete" << std::endl;
+                        int address = data_address[new_index[0]][new_index[1]]; //address찾았음
+                        EX_result = std::bitset<32>(address);
+                    }
+
+                    if (ID_EX_instruction_name == "beq" || ID_EX_instruction_name == "bne") {
+                        std::vector<int> new_index;
+                        if (ID_EX_instruction_name == "beq") {
+                            new_index = ID_EX_i_formats->operation_beq(my_register, instruction_address, ID_EX_index[0], ID_EX_index[1]);
+                        }
+                        if (ID_EX_instruction_name == "bne") {
+                            new_index = ID_EX_i_formats->operation_bne(my_register, instruction_address, ID_EX_index[0], ID_EX_index[1]);
+                        }
+                        if (new_index[0] != -1) { //beq가 성립한다는 뜻
+                            int address = instruction_address[new_index[0]][new_index[1]];///new_index의 주소 리턴
+                            EX_result = std::bitset<32>(address);
+                        }
+                        else {
+    
+                        }
+                    }
+                    else {
+                        EX_result = ID_EX_i_formats->operation(my_register);
+                    }
+                }
+                if (ID_EX_instruction_type == "J") {
+
+                }                
+            }
+
+
+            ////////////////////////////////////////////////////////////MEM STAGE 시작 //////////////////////////////////////////////////////////////////////////
+            if(EX_MEM_pc !=0){
+                if (EX_MEM_instruction_type == "I") {
+                    int32_t address = int32_t(EX_MEM_ALU_result.to_ullong());
+                    std::vector<int> address_index = find_address_index_for_branch(data_address, address);
+                    //////////////////////////////////////////////////////// lw, lb는 wb stage에서 register에 써줘야함////////////////////////////////////////////////////
+                    if (EX_MEM_instruction_name == "lw" || EX_MEM_instruction_name == "lb") {
+                        std::bitset<32> word = EX_MEM_i_formats->operation_lw_or_lb(data_memory, address_index); ///data를 가져왔음.
+
+                        std::cout << EX_MEM_instruction_name << " is started " << std::endl;
+                        std::cout << "the index of address is " << address_index[0] << "," << address_index[1] << std::endl;
+                        
+                        MEM_result_for_lw = word; ///////////  string으로 된 32bit data memory의 주소 리턴.
+                    }
+                    //////////////////////////////////////////////////////// sw, sb는 mem stage에서 종료///////////////////////////////////////////////////////////////////
+                    if (EX_MEM_instruction_name == "sw" || EX_MEM_instruction_name == "sb") {
+                        EX_MEM_i_formats->operation_sw_or_sb(my_register, data_memory, address_index);
+                        if (EX_MEM_instruction_name == "sw") {
+                            std::cout << "sw complete" << std::endl;
+                        }
+                        else {
+                            std::cout << "sb complete" << std::endl;
+                        }
+                    }
+                }
+                else {
+                    std::cout << "mem_stage of " << EX_MEM_instruction_name << ". This instruction doesn't need memory access" << std::endl;
+                }
+            }
+
+            ////////////////////////////////////////////////////////////WB STAGE 시작 //////////////////////////////////////////////////////////////////////////
+            if(MEM_WB_pc != 0){
+                if (MEM_WB_instruction_type == "R") {
+                    int rd = MEM_WB_rd;
+                    my_register[rd] = MEM_WB_ALU_result; // e
+                    std::cout << MEM_WB_instruction_name << "'s wb stage is completed" << std::endl;
+                }
+                if (MEM_WB_instruction_type == "I") {
+                    int rt = MEM_WB_rt;
+                    if (MEM_WB_instruction_name == "lw" || MEM_WB_instruction_name == "lb") {
+                        my_register[rt] = MEM_WB_data;
+                        std::cout << MEM_WB_instruction_name << "'s lw or lb stage is completed" << std::endl;
+                    }
+                }
+                if (MEM_WB_instruction_type == "J") {
+                }
+            }
+
+            //////////////////////////////////////////////////////////상태레지스터 업데이트//////////////////////////////////////////////////////////////////////////
+            MEM_WB_pc = EX_MEM_pc;
+            MEM_WB_index = EX_MEM_index;
+            MEM_WB_instruction_name = EX_MEM_instruction_name;
+            MEM_WB_instruction_type = EX_MEM_instruction_type;
+            MEM_WB_ALU_result = EX_MEM_ALU_result;
+            MEM_WB_rt = EX_MEM_rt;
+            MEM_WB_rd = EX_MEM_rd;
+            MEM_WB_data = MEM_result_for_lw; // MEM STAGE의 결과값 저장.
+            MEM_WB_register_write = EX_MEM_register_write;
+
+            EX_MEM_pc = ID_EX_pc;
+            EX_MEM_index = ID_EX_index;
+            EX_MEM_instruction_name = ID_EX_instruction_name;
+            EX_MEM_rt = ID_EX_rt;
+            EX_MEM_rd = ID_EX_rd;
+            EX_MEM_ALU_result = EX_result; // EX stage의 결과값을 저장.
+            EX_MEM_i_formats = ID_EX_i_formats;
+            EX_MEM_register_write = ID_EX_register_write;
+            
+
+            ID_EX_pc = IF_ID_pc;
+            ID_EX_index = IF_ID_index;
+            ID_EX_instruction_type = ID_instruction_type;
+            ID_EX_instruction_name = ID_instruction_name;
+            ID_EX_rs = ID_rs;
+            ID_EX_rt = ID_rt;
+            ID_EX_rd = ID_rd;
+            ID_EX_r_formats = ID_r_format; //어떤 format의 인스턴스인지 확인하기 위해서
+            ID_EX_i_formats = ID_i_format;
+            ID_EX_j_formats = ID_j_format;
+            ID_EX_register_write = ID_register_write;
+
+            IF_ID_pc = IF_pc;
+            IF_ID_index = IF_index;//if stage에 있던 pc를 if/id stage에 전달
+
+            instruction_memory_big_index++ ; //pc+4와 동일
+
+            ///해저드체킹
+            /////EX/MEM TO EX FORWARDING
+            if(EX_MEM_register_write == true){
+                if(EX_MEM_instruction_type == "R"){
+                    if(EX_MEM_rd != -1){
+                        if(EX_MEM_rd == ID_EX_rt){
+                            std::cout << "EX/MEM rd, ID_EX rt 데이터 해저드 발생" << std::endl;
+                            my_register[ID_EX_rt] = EX_MEM_ALU_result; 
+                        }
+                        if(EX_MEM_rd == ID_EX_rs){
+                            std::cout << "EX/MEM rd, ID_EX_rs 데이터 해저드 발생" << std::endl;
+                            my_register[ID_EX_rs] = EX_MEM_ALU_result;
+                        }
+                    }
+                }
+                if(EX_MEM_instruction_type == "I"){//////////////////////addiu, andi, lui,ori, sltiu 인 경우
+                    if(EX_MEM_rt != -1){
+                        if(EX_MEM_rt == ID_EX_rt){
+                            std::cout << "EX/MEM rt, ID/EX rt 데이터 해저드 발생" << std::endl;
+                            my_register[ID_EX_rt] = EX_MEM_ALU_result; 
+                        }
+                        if(EX_MEM_rt == ID_EX_rs){
+                            std::cout << "EX/MEM rt, ID/EX rs 데이터 해저드 발생" << std::endl;
+                            my_register[ID_EX_rs] = EX_MEM_ALU_result; 
+                        }
+                    }
+                }
+
+                ////MEM/WB to EX FORWARDING 
+                if(MEM_WB_register_write == true){
+                    if(MEM_WB_instruction_type == "R"){
+                        if(MEM_WB_rd != -1){
+                            if(EX_MEM_rd != ID_EX_rs){
+                                if(MEM_WB_rd == ID_EX_rs){
+                                    std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
+                                    my_register[ID_EX_rs] = MEM_WB_ALU_result;
+                                }
+                            }
+                            if(EX_MEM_rd != ID_EX_rt){
+                                if(MEM_WB_rd == ID_EX_rt){
+                                    std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
+                                    my_register[ID_EX_rt] = MEM_WB_ALU_result;
+                                }
+                            }
+                        }
+                    }
+                    if(MEM_WB_instruction_type == "I"){
+                        if(MEM_WB_rt != -1){
+                            if(EX_MEM_rt != ID_EX_rs){
+                                if(MEM_WB_rt == ID_EX_rs){
+                                    std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
+                                    my_register[ID_EX_rs] = MEM_WB_ALU_result;
+                                }
+                            }
+                            if(EX_MEM_rt != ID_EX_rt){
+                                if(MEM_WB_rt == ID_EX_rt){
+                                    std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
+                                    my_register[ID_EX_rt] = MEM_WB_ALU_result;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                //////////////////////
+            }
+
+
+
+
+
+        
+        }
+        
+        
 
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
