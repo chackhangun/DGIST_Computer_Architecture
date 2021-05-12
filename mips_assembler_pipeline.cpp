@@ -571,10 +571,10 @@ int main()
 
     if (command_parsing[0] == "./runfile")
     {
-        std::cout << "program_start" << std::endl; //// test code
         bool exist_m = false;
         bool exist_d = false;
         bool exist_n = false;
+        bool exist_p = false;
         int memory_n;
         int command_n_instruction;
         for (int n = 0; n < command_parsing.size(); n++)
@@ -594,6 +594,10 @@ int main()
             {
                 exist_n = true;
                 command_n_instruction = stoi(command_parsing[n + 1]);
+                continue;
+            }
+            if (command_parsing[n] == "-p") {
+                exist_p = true;
                 continue;
             }
         }
@@ -765,7 +769,6 @@ int main()
             reading.close();
         }
 
-        std::cout << "complete" << std::endl;
         /////////////////////////////////////////////////instruction memory, data memory 생성됨 ///////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////.///////////////////////////////////////////////////////////////////////////////////
@@ -785,8 +788,6 @@ int main()
 
         /////////////////////////////////////////////////////////pipeline test 코드///////////////////////////////////////////////////////////////////
 
-
-        /* 클래스로 구현 가능*/
         bool data_hazard = false;
         bool load_use_hazard = false;
 
@@ -824,13 +825,18 @@ int main()
         std::string start_signal = "start";
         ID_EX ID_EX_stall;
         IF_ID IF_ID_stall;
+
+        int cycle = 0;
         while (instruction_memory_big_index < instruction_address.size()) {
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             ////////////////////////////////////////////////////////////IF STAGE 시작 //////////////////////////////////////////////////////////////////////////
             ////////////////////////////////////////////////////////////Fetching 단계에서는 pc+4와 instruction memory에 접근해서 instruction을 꺼내옴.//////////
-            if (instruction_memory_big_index == instruction_address.size() - 1) {
+            if (instruction_memory_big_index == instruction_address.size() -1) {
+                if (MEM_WB_reg.pc == 0) {
+                    break;
+                }
                 instruction_32bit_string = { "" };
                 std::string temp;
                 for (int a = 0; a < 4; a++) {
@@ -846,9 +852,7 @@ int main()
                 instruction_memory_big_index--;
                 IF_pc = 0;
                 IF_index = { -1,-1 };
-                if (MEM_WB_reg.pc == 0) {
-                    break;
-                }
+
             }
 
             else {
@@ -861,18 +865,18 @@ int main()
                     IF_pc = instruction_address[instruction_memory_big_index][instruction_memory_small_index];
                     IF_index = { instruction_memory_big_index, instruction_memory_small_index };
 
-                    std::cout << "IF START" << std::endl;
-                    std::cout << "index = " << "{" << IF_index[0] << "," << IF_index[1] << "}" << std::endl;
+                    //std::cout << "IF START" << std::endl;
+                    //std::cout << "index = " << "{" << IF_index[0] << "," << IF_index[1] << "}" << std::endl;
                 }
             }
 
-
+            cycle++;
             ////////////////////////////////////////////////////////////ID STAGE 시작 //////////////////////////////////////////////////////////////////////////
 
 
             if (load_use_hazard == false) {
                 if (IF_ID_reg.pc != 0) {
-                    std::cout << "ID START" << std::endl;
+                    //std::cout << "ID START" << std::endl;
 
                     std::vector<int> int_instruction;
                     std::string ID_stage_type_checking = "none";
@@ -882,7 +886,7 @@ int main()
                         int_instruction = change_to_R_format_instruction(instruction_pipeline[1]);
                         for (auto r = R.begin(); r != R.end(); r++) {
                             if ((r->opcode) == int_instruction[0] && (r->funct) == int_instruction[5]) {
-                                std::cout << r->instruction_name << std::endl; ////test////
+                                //std::cout << r->instruction_name << std::endl; ////test////
                                 R_format* instruction = new R_format(r->instruction_name, r->opcode, r->funct);
 
                                 ID_rs = instruction->rs = int_instruction[1];
@@ -912,7 +916,7 @@ int main()
                         int_instruction = change_to_I_format_instruction(instruction_pipeline[1]);
                         for (auto i = I.begin(); i != I.end(); i++) {
                             if (i->opcode == int_instruction[0]) {
-                                std::cout << i->instruction_name << std::endl; ////test////
+                                //std::cout << i->instruction_name << std::endl; ////test////
                                 I_format* instruction = new I_format(i->instruction_name, i->opcode);
                                 ID_rs = instruction->rs = int_instruction[1];
                                 ID_rt = instruction->rt = int_instruction[2];
@@ -938,7 +942,7 @@ int main()
                         int_instruction = change_to_J_format_instruction(instruction_pipeline[1]);
                         for (auto j = J.begin(); j != J.end(); j++) {
                             if (j->opcode == int_instruction[0]) {
-                                std::cout << j->instruction_name << std::endl;
+                                //std::cout << j->instruction_name << std::endl;
                                 J_format* instruction = new J_format(j->instruction_name, j->opcode);
 
                                 ID_imm = instruction->jump_target = int_instruction[1];
@@ -969,8 +973,8 @@ int main()
 
             if (load_use_hazard == false) {
                 if (ID_EX_reg.pc != 0) {
-                    std::cout << "EX START" << std::endl;
-                    std::cout << ID_EX_reg.instruction_name << std::endl;
+                    //std::cout << "EX START" << std::endl;
+                    //std::cout << ID_EX_reg.instruction_name << std::endl;
                     std::vector<std::bitset<32>>* register_ptr = &my_register;
                     if (data_hazard == true) {
                         register_ptr = &hazard_register;
@@ -986,7 +990,7 @@ int main()
                             std::vector<int> new_index = (*(ID_EX_reg.i_formats)).address_idx_cal_lw_lb_sw_sb(*register_ptr, data_address);
                             //EX_MEM_reg.BRANCH_TARGET = new_index;
 
-                            std::cout << ID_EX_reg.instruction_name << "'s ex_stage(calculation address) complete" << std::endl;
+                            //std::cout << ID_EX_reg.instruction_name << "'s ex_stage(calculation address) complete" << std::endl;
                             int address = data_address[new_index[0]][new_index[1]]; //address찾았음
                             EX_result = std::bitset<32>(address);
                         }
@@ -1021,8 +1025,8 @@ int main()
             ////////////////////////////////////////////////////////////MEM STAGE 시작 //////////////////////////////////////////////////////////////////////////
 
             if (EX_MEM_reg.pc != 0) {
-                std::cout << "MEM START" << std::endl;
-                std::cout << EX_MEM_reg.instruction_name << std::endl;
+                //std::cout << "MEM START" << std::endl;
+                //std::cout << EX_MEM_reg.instruction_name << std::endl;
                 if (EX_MEM_reg.instruction_type == "I") {
                     int32_t address = int32_t(EX_MEM_reg.ALU_result.to_ullong());
                     std::vector<int> address_index = find_address_index_for_branch(data_address, address);
@@ -1030,8 +1034,8 @@ int main()
                     if (EX_MEM_reg.instruction_name == "lw" || EX_MEM_reg.instruction_name == "lb") {
                         std::bitset<32> word = (*(EX_MEM_reg.i_formats)).operation_lw_or_lb(data_memory, address_index); ///data를 가져왔음.
 
-                        std::cout << EX_MEM_reg.instruction_name << " is started " << std::endl;
-                        std::cout << "the index of address is " << address_index[0] << "," << address_index[1] << std::endl;
+                        //std::cout << EX_MEM_reg.instruction_name << " is started " << std::endl;
+                        //std::cout << "the index of address is " << address_index[0] << "," << address_index[1] << std::endl;
 
                         MEM_result_for_lw = word; ///////////  string으로 된 32bit data memory의 주소 리턴.
                     }
@@ -1039,59 +1043,44 @@ int main()
                     if (EX_MEM_reg.instruction_name == "sw" || EX_MEM_reg.instruction_name == "sb") {
                         (*(EX_MEM_reg.i_formats)).operation_sw_or_sb(my_register, data_memory, address_index);
                         if (EX_MEM_reg.instruction_name == "sw") {
-                            std::cout << "sw complete" << std::endl;
+                            //std::cout << "sw complete" << std::endl;
                         }
                         else {
-                            std::cout << "sb complete" << std::endl;
+                            //std::cout << "sb complete" << std::endl;
                         }
                     }
                 }
                 else {
-                    std::cout << "mem_stage of " << EX_MEM_reg.instruction_name << ". This instruction doesn't need memory access" << std::endl;
+                    //std::cout << "mem_stage of " << EX_MEM_reg.instruction_name << ". This instruction doesn't need memory access" << std::endl;
                 }
             }
 
             ////////////////////////////////////////////////////////////WB STAGE 시작 //////////////////////////////////////////////////////////////////////////
-
             if (MEM_WB_reg.pc != 0) {
-                std::cout << "WB START" << std::endl;
-                std::cout << MEM_WB_reg.instruction_name << std::endl;
                 if (MEM_WB_reg.instruction_type == "R") {
                     int rd = MEM_WB_reg.rd;
                     my_register[rd] = MEM_WB_reg.ALU_result; // e
-                    std::cout << MEM_WB_reg.instruction_name << "'s wb stage is completed" << std::endl;
                 }
                 if (MEM_WB_reg.instruction_type == "I") {
                     int rt = MEM_WB_reg.rt;
                     if (MEM_WB_reg.instruction_name == "lw" || MEM_WB_reg.instruction_name == "lb") {
                         my_register[rt] = MEM_WB_reg.data;
-                        std::cout << "rt = " << rt << std::endl;
-                        std::cout << MEM_WB_reg.data.to_string() << std::endl;
-                        std::cout << MEM_WB_reg.instruction_name << "'s lw or lb stage is completed" << std::endl;
                     }
                     if (MEM_WB_reg.instruction_name == "sw" || MEM_WB_reg.instruction_name == "lb") {
-                        std::cout << MEM_WB_reg.instruction_name << "'s wb stage is completed" << std::endl;
                     }
                     else {
                         my_register[rt] = MEM_WB_reg.ALU_result;
-                        std::cout << MEM_WB_reg.instruction_name << "'s wb stage is completed" << std::endl;
                     }
                 }
                 if (MEM_WB_reg.instruction_type == "J") {
                 }
-
-                for (int n = 0; n < my_register.size(); n++)
-                {
-                    std::cout << "R" << n << ":"
-                        << " 0x" << int_to_hex(int(my_register[n].to_ullong())) << std::endl;
-                }
             }
 
             //////////////////////////////////////////////////////////상태레지스터 업데이트//////////////////////////////////////////////////////////////////////////
-            std::cout << "-------------------------------------------------STATE REGISTER UPDATE-------------------------------------------------" << std::endl;
+            //std::cout << "-------------------------------------------------STATE REGISTER UPDATE-------------------------------------------------" << std::endl;
             data_hazard = false; //해저드 초기화
 
-
+            int end_pc = MEM_WB_reg.pc;
             MEM_WB_reg.pc = EX_MEM_reg.pc;
             MEM_WB_reg.index = EX_MEM_reg.index;
             MEM_WB_reg.instruction_name = EX_MEM_reg.instruction_name;
@@ -1138,7 +1127,7 @@ int main()
 
             ///해저드체킹
             /////EX/MEM TO EX FORWARDING
-            std::cout << "-------------------------------------------------hazard checking-------------------------------------------------" << std::endl;
+            //std::cout << "-------------------------------------------------hazard checking-------------------------------------------------" << std::endl;
             bool threetime = false;
             if (MEM_WB_reg.register_write == true) {
                 if (MEM_WB_reg.instruction_type == "R") {
@@ -1146,7 +1135,7 @@ int main()
                         if (EX_MEM_reg.rd != ID_EX_reg.rs || EX_MEM_reg.rd != ID_EX_reg.rt) {////////////////////////  ///MEM/WB to EX FORWARDING 
                             if (EX_MEM_reg.rd != ID_EX_reg.rs) {
                                 if (MEM_WB_reg.rd == ID_EX_reg.rs) {
-                                    std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
+                                    //std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
                                     data_hazard = true;
                                     hazard_register = my_register;
                                     hazard_register[ID_EX_reg.rs] = MEM_WB_reg.ALU_result;
@@ -1154,7 +1143,7 @@ int main()
                             }
                             if (EX_MEM_reg.rd != ID_EX_reg.rt) {
                                 if (MEM_WB_reg.rd == ID_EX_reg.rt) {
-                                    std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
+                                    //std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
                                     data_hazard = true;
                                     hazard_register = my_register;
                                     hazard_register[ID_EX_reg.rt] = MEM_WB_reg.ALU_result;
@@ -1162,7 +1151,7 @@ int main()
                             }
                         }
                         if (MEM_WB_reg.rd == EX_MEM_reg.rs && EX_MEM_reg.rs == ID_EX_reg.rs) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1170,7 +1159,7 @@ int main()
 
                         }
                         if (MEM_WB_reg.rd == EX_MEM_reg.rs && EX_MEM_reg.rs == ID_EX_reg.rt) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1178,7 +1167,7 @@ int main()
 
                         }
                         if (MEM_WB_reg.rd == EX_MEM_reg.rt && EX_MEM_reg.rt == ID_EX_reg.rs) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1186,7 +1175,7 @@ int main()
 
                         }
                         if (MEM_WB_reg.rd == EX_MEM_reg.rt && EX_MEM_reg.rt == ID_EX_reg.rt) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
+                            //::cout << "같은 레지스터가 연속 3번 사용됨" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1200,7 +1189,7 @@ int main()
                     if (MEM_WB_reg.rt != -1) {
                         if (EX_MEM_reg.rt != ID_EX_reg.rs) { /// mem/wb to ex forwarding
                             if (MEM_WB_reg.rt == ID_EX_reg.rs) {
-                                std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
+                                //std::cout << "MEM/WB FORWARDING, ID/EX rs 데이터 해저드 발생" << std::endl;
                                 data_hazard = true;
                                 hazard_register = my_register;
                                 hazard_register[ID_EX_reg.rs] = MEM_WB_reg.ALU_result;
@@ -1208,7 +1197,7 @@ int main()
                         }
                         if (EX_MEM_reg.rt != ID_EX_reg.rt) {
                             if (MEM_WB_reg.rt == ID_EX_reg.rt) { /// mem/wb to ex forwarding
-                                std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
+                                //std::cout << "MEM/WB FORWARDING, 데이터 해저드 발생" << std::endl;
                                 data_hazard = true;
                                 hazard_register = my_register;
                                 hazard_register[ID_EX_reg.rt] = MEM_WB_reg.ALU_result;
@@ -1216,21 +1205,21 @@ int main()
                         }
 
                         if (MEM_WB_reg.rt == EX_MEM_reg.rs && EX_MEM_reg.rs == ID_EX_reg.rs) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
                             hazard_register[ID_EX_reg.rs] = MEM_WB_reg.ALU_result;
                         }
                         if (MEM_WB_reg.rt == EX_MEM_reg.rs && EX_MEM_reg.rs == ID_EX_reg.rt) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
                             hazard_register[ID_EX_reg.rt] = MEM_WB_reg.ALU_result;
                         }
                         if (MEM_WB_reg.rt == EX_MEM_reg.rt && EX_MEM_reg.rt == ID_EX_reg.rs) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1238,7 +1227,7 @@ int main()
 
                         }
                         if (MEM_WB_reg.rt == EX_MEM_reg.rt && EX_MEM_reg.rt == ID_EX_reg.rt) {
-                            std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
+                            //std::cout << "같은 레지스터가 연속 3번 사용됨, MEM/WB의 EX결과값전달" << std::endl;
                             data_hazard = true;
                             threetime = true;
                             hazard_register = my_register;
@@ -1254,7 +1243,7 @@ int main()
                 if (EX_MEM_reg.instruction_type == "R") {
                     if (EX_MEM_reg.rd != -1) {
                         if (EX_MEM_reg.rd == ID_EX_reg.rt || EX_MEM_reg.rd == ID_EX_reg.rs) {
-                            std::cout << "EX/MEM rt, ID/EX rt rs 데이터 해저드 발생" << std::endl;
+                           // std::cout << "EX/MEM rt, ID/EX rt rs 데이터 해저드 발생" << std::endl;
                             data_hazard = true;
                             if (threetime == false) {
                                 hazard_register = my_register;
@@ -1274,10 +1263,10 @@ int main()
                 if (EX_MEM_reg.instruction_type == "I") {//////////////////////addiu, andi, lui,ori, sltiu 인 경우
                     if (EX_MEM_reg.rt != -1) {
                         if (EX_MEM_reg.rt == ID_EX_reg.rt || EX_MEM_reg.rt == ID_EX_reg.rs) {
-                            std::cout << "EX/MEM rt, ID/EX rt rs 데이터 해저드 발생" << std::endl;
+                            //std::cout << "EX/MEM rt, ID/EX rt rs 데이터 해저드 발생" << std::endl;
                             if (EX_MEM_reg.instruction_name == "lw" || EX_MEM_reg.instruction_name == "lb") { ///load use hazard
                                 if (ID_EX_reg.instruction_name != "sw" && ID_EX_reg.instruction_name == "sb"){
-                                    std::cout << "load use hazard" << std::endl;
+                                    //std::cout << "load use hazard" << std::endl;
                                     load_use_hazard = true;
                                     ID_EX_ptr = &ID_EX_stall;
                                     IF_ID_ptr = &IF_ID_stall;
@@ -1285,13 +1274,8 @@ int main()
                                 }
                                 else {
                                     lw_sw_seq = true;
-                                    std::cout << "lw/lb + sw/sb 나옴" << std::endl;
+                                    //std::cout << "lw/lb + sw/sb 나옴" << std::endl;
                                 }
-                                /*
-                                if (ID_EX_reg.instruction_name == "sw" || ID_EX_reg.instruction_name == "sb") {
-                                    // mem/wb to mem forwarding 필요.
-                                    lw_sw_seq = true;
-                                }*/
                             }
                             if (lw_sw_seq != true) {////lw,sw 연속으로 나오지 않을때 load use hazard.
                                 data_hazard = true;
@@ -1305,13 +1289,29 @@ int main()
                             }
                         }
                     }
+
+                }
+                if (exist_d == true) {
+                    std::cout << "===== Completion cycle: " << cycle << " ====" << std::endl;
+                    std::wcout << std::endl;
+                }
+                if (exist_p == true) {
+
+                    std::cout << "Current pipeline PC state" << std::endl;
+                    std::cout << "{" << "0x" << int_to_hex(IF_ID_reg.pc) << "|" << "0x" << int_to_hex(ID_EX_reg.pc) << "|" << "0x" << int_to_hex(EX_MEM_reg.pc) << "|" << "0x" << int_to_hex(MEM_WB_reg.pc) << "|" << "0x" << int_to_hex(end_pc) << "}" << std::endl;
+                }
+                if (exist_d == true)
+                {
+                    std::cout << "Current register values: " << std::endl;
+                    std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
+                    std::cout << "Register:" << std::endl;
+                    for (int n = 0; n < my_register.size(); n++)
+                    {
+                        std::cout << "R" << n << ":"
+                            << " 0x" << int_to_hex(int(my_register[n].to_ullong())) << std::endl;
+                    }
                 }
             }
-
-
-            std::cout << "-------------------------------------------------one cycle end-------------------------------------------------" << std::endl;
-
-
 
         }
   
@@ -1325,14 +1325,20 @@ int main()
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        if (exist_d == false) {
+            std::cout << "===== Completion cycle: " << cycle << " ====" << std::endl;
+            std::wcout << std::endl;
+        }
+        if (exist_p == false) {
 
-
+            std::cout << "Current pipeline PC state" << std::endl;
+            std::cout << "{" << "|" << "|" << "|" << "|" << "}" << std::endl;
+        }
         if (exist_d == false)
         {
-            std::cout << "Current register value: " << std::endl;
-            std::cout << "---------------------------------------------------------------" << std::endl;
+            std::cout << "Current register values: " << std::endl;
             std::cout << "PC: 0x" << int_to_hex(instruction_address[instruction_memory_big_index][0]) << std::endl;
-            std::cout << "Register:" << std::endl;
+            std::cout << "Registers:" << std::endl;
             for (int n = 0; n < my_register.size(); n++)
             {
                 std::cout << "R" << n << ":"
